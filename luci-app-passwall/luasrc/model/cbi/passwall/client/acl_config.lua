@@ -222,14 +222,15 @@ for k, v in pairs(nodes_table) do
     udp_node:value(v.id, v["remark"])
 end
 
+o = s:option(Flag, "filter_proxy_ipv6", translate("Filter Proxy Host IPv6"), translate("Experimental feature."))
+o.default = "0"
+o:depends({ tcp_node = "default",  ['!reverse'] = true })
+
 ---- DNS Forward Mode
 o = s:option(ListValue, "dns_mode", translate("Filter Mode"))
 o:depends({ tcp_node = "default",  ['!reverse'] = true })
 if api.is_finded("dns2socks") then
     o:value("dns2socks", "dns2socks")
-end
-if has_v2ray then
-    o:value("v2ray", "V2ray")
 end
 if has_xray then
     o:value("xray", "Xray")
@@ -238,7 +239,6 @@ end
 o = s:option(ListValue, "v2ray_dns_mode", " ")
 o:value("tcp", "TCP")
 o:value("doh", "DoH")
-o:depends("dns_mode", "v2ray")
 o:depends("dns_mode", "xray")
 
 ---- DNS Forward
@@ -294,5 +294,22 @@ end
 o = s:option(Value, "dns_client_ip", translate("EDNS Client Subnet"))
 o.datatype = "ipaddr"
 o:depends("v2ray_dns_mode", "doh")
+
+if has_chnlist then
+    when_chnroute_default_dns = s:option(ListValue, "when_chnroute_default_dns", translate("When using the chnroute list the default DNS"))
+    when_chnroute_default_dns.default = "direct"
+    when_chnroute_default_dns:value("remote", translate("Remote DNS"))
+    when_chnroute_default_dns:value("direct", translate("Direct DNS"))
+    when_chnroute_default_dns.description = "<ul>"
+    .. "<li>" .. translate("Remote DNS can avoid more DNS leaks, but some domestic domain names maybe to proxy!") .. "</li>"
+    .. "<li>" .. translate("Direct DNS Internet experience may be better, but DNS will be leaked!") .. "</li>"
+    if api.is_finded("chinadns-ng") then
+        when_chnroute_default_dns:value("chinadns_ng", translate("ChinaDNS-NG"))
+        when_chnroute_default_dns.default = "chinadns_ng"
+    end
+    when_chnroute_default_dns.description = when_chnroute_default_dns.description .. "</li></ul>"
+    when_chnroute_default_dns:depends("tcp_proxy_mode", "chnroute")
+    when_chnroute_default_dns:depends("udp_proxy_mode", "chnroute")
+end
 
 return m
