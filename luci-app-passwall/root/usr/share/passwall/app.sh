@@ -22,7 +22,7 @@ RULES_PATH=/usr/share/${CONFIG}/rules
 DNS_N=dnsmasq
 DNS_PORT=15353
 TUN_DNS="127.0.0.1#${DNS_PORT}"
-LOCAL_DNS=119.29.29.29
+LOCAL_DNS=119.29.29.29,223.5.5.5
 DEFAULT_DNS=
 IFACES=
 ENABLED_DEFAULT_ACL=0
@@ -1063,29 +1063,31 @@ start_dns() {
 	DNSMASQ_FILTER_IPV6=$FILTER_PROXY_IPV6
 
 	echolog "过滤服务配置：准备接管域名解析..."
-	local items=$(uci show ${CONFIG} | grep "=acl_rule" | cut -d '.' -sf 2 | cut -d '=' -sf 1)
-	[ -n "$items" ] && {
-		for item in $items; do
-			[ "$(config_n_get $item enabled)" = "1" ] || continue
-			[ "$(config_n_get $item tcp_node)" = "default" ] && [ "$TCP_NODE" != "nil" ] && {
-				local item_tcp_proxy_mode=$(config_n_get $item tcp_proxy_mode default)
-				[ "$item_tcp_proxy_mode" = "default" ] && item_tcp_proxy_mode=$TCP_PROXY_MODE
-				global=$(echo "${global}${item_tcp_proxy_mode}" | grep "global")
-				returnhome=$(echo "${returnhome}${item_tcp_proxy_mode}" | grep "returnhome")
-				chnlist=$(echo "${chnlist}${item_tcp_proxy_mode}" | grep "chnroute")
-				gfwlist=$(echo "${gfwlist}${item_tcp_proxy_mode}" | grep "gfwlist")
-				ACL_TCP_PROXY_MODE=${ACL_TCP_PROXY_MODE}${item_tcp_proxy_mode}
-			}
-			[ "$(config_n_get $item udp_node)" = "default" ] && [ "$UDP_NODE" != "nil" ] && {
-				local item_udp_proxy_mode=$(config_n_get $item udp_proxy_mode default)
-				[ "$item_udp_proxy_mode" = "default" ] && item_udp_proxy_mode=$UDP_PROXY_MODE
-				global=$(echo "${global}${item_udp_proxy_mode}" | grep "global")
-				returnhome=$(echo "${returnhome}${item_udp_proxy_mode}" | grep "returnhome")
-				chnlist=$(echo "${chnlist}${item_udp_proxy_mode}" | grep "chnroute")
-				gfwlist=$(echo "${gfwlist}${item_udp_proxy_mode}" | grep "gfwlist")
-				ACL_UDP_PROXY_MODE=${ACL_UDP_PROXY_MODE}${item_udp_proxy_mode}
-			}
-		done
+	[ "$ENABLED_ACLS" == 1 ] && {
+		local items=$(uci show ${CONFIG} | grep "=acl_rule" | cut -d '.' -sf 2 | cut -d '=' -sf 1)
+		[ -n "$items" ] && {
+			for item in $items; do
+				[ "$(config_n_get $item enabled)" = "1" ] || continue
+				[ "$(config_n_get $item tcp_node)" = "default" ] && [ "$TCP_NODE" != "nil" ] && {
+					local item_tcp_proxy_mode=$(config_n_get $item tcp_proxy_mode default)
+					[ "$item_tcp_proxy_mode" = "default" ] && item_tcp_proxy_mode=$TCP_PROXY_MODE
+					global=$(echo "${global}${item_tcp_proxy_mode}" | grep "global")
+					returnhome=$(echo "${returnhome}${item_tcp_proxy_mode}" | grep "returnhome")
+					chnlist=$(echo "${chnlist}${item_tcp_proxy_mode}" | grep "chnroute")
+					gfwlist=$(echo "${gfwlist}${item_tcp_proxy_mode}" | grep "gfwlist")
+					ACL_TCP_PROXY_MODE=${ACL_TCP_PROXY_MODE}${item_tcp_proxy_mode}
+				}
+				[ "$(config_n_get $item udp_node)" = "default" ] && [ "$UDP_NODE" != "nil" ] && {
+					local item_udp_proxy_mode=$(config_n_get $item udp_proxy_mode default)
+					[ "$item_udp_proxy_mode" = "default" ] && item_udp_proxy_mode=$UDP_PROXY_MODE
+					global=$(echo "${global}${item_udp_proxy_mode}" | grep "global")
+					returnhome=$(echo "${returnhome}${item_udp_proxy_mode}" | grep "returnhome")
+					chnlist=$(echo "${chnlist}${item_udp_proxy_mode}" | grep "chnroute")
+					gfwlist=$(echo "${gfwlist}${item_udp_proxy_mode}" | grep "gfwlist")
+					ACL_UDP_PROXY_MODE=${ACL_UDP_PROXY_MODE}${item_udp_proxy_mode}
+				}
+			done
+		}
 	}
 
 	case "$DNS_MODE" in
@@ -1613,8 +1615,8 @@ ISP_DNS=$(cat $RESOLVFILE 2>/dev/null | grep -E -o "[0-9]+\.[0-9]+\.[0-9]+\.[0-9
 ISP_DNS6=$(cat $RESOLVFILE 2>/dev/null | grep -E "([A-Fa-f0-9]{1,4}::?){1,7}[A-Fa-f0-9]{1,4}" | awk -F % '{print $1}' | awk -F " " '{print $2}'| sort -u | grep -v -Fx ::1 | grep -v -Fx ::)
 
 DEFAULT_DNS=$(uci show dhcp | grep "@dnsmasq" | grep "\.server=" | awk -F '=' '{print $2}' | sed "s/'//g" | tr ' ' '\n' | grep -v "\/" | head -2 | sed ':label;N;s/\n/,/;b label')
-[ -z "${DEFAULT_DNS}" ] && DEFAULT_DNS=$(echo -n $ISP_DNS | tr ' ' '\n' | head -2 | tr '\n' ',')
-LOCAL_DNS="${DEFAULT_DNS:-119.29.29.29}"
+[ -z "${DEFAULT_DNS}" ] && [ "$(echo $ISP_DNS | tr ' ' '\n' | wc -l)" -le 2 ] && DEFAULT_DNS=$(echo -n $ISP_DNS | tr ' ' '\n' | head -2 | tr '\n' ',')
+LOCAL_DNS="${DEFAULT_DNS:-119.29.29.29,223.5.5.5}"
 
 PROXY_IPV6=$(config_t_get global_forwarding ipv6_tproxy 0)
 DNS_QUERY_STRATEGY="UseIPv4"
