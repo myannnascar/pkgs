@@ -16,7 +16,7 @@ bold_off = [[</strong>]]
 
 local op_mode = string.sub(luci.sys.exec('uci get openclash.config.operation_mode 2>/dev/null'),0,-2)
 if not op_mode then op_mode = "redir-host" end
-local lan_ip = SYS.exec("uci -q get network.lan.ipaddr |awk -F '/' '{print $1}' 2>/dev/null |tr -d '\n' || ip address show $(uci -q -p /tmp/state get network.lan.ifname || uci -q -p /tmp/state get network.lan.device) | grep -w 'inet'  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n' || ip addr show 2>/dev/null | grep -w 'inet' | grep 'global' | grep 'brd' | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -n 1 | tr -d '\n'")
+local lan_ip = SYS.exec("uci -q get network.lan.ipaddr |awk -F '/' '{print $1}' 2>/dev/null |tr -d '\n' || ip address show $(uci -q -p /tmp/state get network.lan.device || uci -q -p /tmp/state get network.lan.device) | grep -w 'inet'  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n' || ip addr show 2>/dev/null | grep -w 'inet' | grep 'global' | grep 'brd' | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -n 1 | tr -d '\n'")
 
 m = Map("openclash", translate("Plugin Settings"))
 m.pageaction = false
@@ -790,6 +790,40 @@ o.rawhtml = true
 o.template = "openclash/other_stream_option"
 o.value = "Google"
 o:depends("stream_auto_select_google_not_cn", "1")
+
+--ChatGPT
+o = s:taboption("stream_enhance", Flag, "stream_auto_select_chatgpt", font_red..translate("ChatGPT")..font_off)
+o.default = 0
+o:depends("stream_auto_select", "1")
+
+o = s:taboption("stream_enhance", Value, "stream_auto_select_group_key_chatgpt", translate("Group Filter"))
+o.default = "ChatGPT"
+o.placeholder = "ChatGPT"
+o.description = translate("It Will Be Searched According To The Regex When Auto Search Group Fails")
+o:depends("stream_auto_select_chatgpt", "1")
+
+o = s:taboption("stream_enhance", Value, "stream_auto_select_region_key_chatgpt", translate("Unlock Region Filter"))
+o.default = ""
+o.placeholder = "US"
+o.description = translate("It Will Be Selected Region(Country Shortcode) According To The Regex")
+o:depends("stream_auto_select_chatgpt", "1")
+function o.validate(self, value)
+	if value ~= m.uci:get("openclash", "config", "stream_auto_select_region_key_chatgpt") then
+		fs.unlink("/tmp/openclash_ChatGPT_region")
+	end
+	return value
+end
+
+o = s:taboption("stream_enhance", Value, "stream_auto_select_node_key_chatgpt", translate("Unlock Nodes Filter"))
+o.default = ""
+o.description = translate("It Will Be Selected Nodes According To The Regex")
+o:depends("stream_auto_select_chatgpt", "1")
+
+o = s:taboption("stream_enhance", DummyValue, "ChatGPT", translate("Manual Test"))
+o.rawhtml = true
+o.template = "openclash/other_stream_option"
+o.value = "ChatGPT"
+o:depends("stream_auto_select_chatgpt", "1")
 
 ---- update Settings
 o = s:taboption("rules_update", Flag, "other_rule_auto_update", translate("Auto Update"))
