@@ -255,9 +255,8 @@ load_acl() {
 				[ "${use_direct_list}" = "1" ] && $ipt_m -A PSW $(comment "$remarks") ${_ipt_source} $(dst $IPSET_WHITELIST) -j RETURN
 				[ "${use_block_list}" = "1" ] && $ipt_m -A PSW $(comment "$remarks") ${_ipt_source} $(dst $IPSET_BLOCKLIST) -j DROP
 				[ "$PROXY_IPV6" == "1" ] && {
-					[ "${use_direct_list}" = "1" ] && $ipt6_n -A PSW $(comment "$remarks") ${_ipt_source} $(dst $IPSET_WHITELIST6) -j RETURN
-					[ "${use_direct_list}" = "1" ] && $ipt6_m -A PSW $(comment "$remarks") ${_ipt_source} $(dst $IPSET_WHITELIST6) -j RETURN
-					[ "${use_block_list}" = "1" ] && $ipt6_m -A PSW $(comment "$remarks") ${_ipt_source} $(dst $IPSET_BLOCKLIST6) -j DROP
+					[ "${use_direct_list}" = "1" ] && $ip6t_m -A PSW $(comment "$remarks") ${_ipt_source} $(dst $IPSET_WHITELIST6) -j RETURN 2>/dev/null
+					[ "${use_block_list}" = "1" ] && $ip6t_m -A PSW $(comment "$remarks") ${_ipt_source} $(dst $IPSET_BLOCKLIST6) -j DROP 2>/dev/null
 				}
 				
 				[ -n "$tcp_port" ] && {
@@ -408,9 +407,8 @@ load_acl() {
 		[ "${USE_DIRECT_LIST}" = "1" ] && $ipt_m -A PSW $(comment "默认") $(dst $IPSET_WHITELIST) -j RETURN
 		[ "${USE_BLOCK_LIST}" = "1" ] && $ipt_m -A PSW $(comment "默认") $(dst $IPSET_BLOCKLIST) -j DROP
 		[ "$PROXY_IPV6" == "1" ] && {
-			[ "${USE_DIRECT_LIST}" = "1" ] && $ipt6_n -A PSW $(comment "默认") $(dst $IPSET_WHITELIST6) -j RETURN
-			[ "${USE_DIRECT_LIST}" = "1" ] && $ipt6_m -A PSW $(comment "默认") $(dst $IPSET_WHITELIST6) -j RETURN
-			[ "${USE_BLOCK_LIST}" = "1" ] && $ipt6_m -A PSW $(comment "默认") $(dst $IPSET_BLOCKLIST6) -j DROP
+			[ "${USE_DIRECT_LIST}" = "1" ] && $ip6t_m -A PSW $(comment "默认") $(dst $IPSET_WHITELIST6) -j RETURN 2>/dev/null
+			[ "${USE_BLOCK_LIST}" = "1" ] && $ip6t_m -A PSW $(comment "默认") $(dst $IPSET_BLOCKLIST6) -j DROP 2>/dev/null
 		}
 		#  加载TCP默认代理模式
 		[ "$TCP_PROXY_DROP_PORTS" != "disable" ] && {
@@ -744,16 +742,16 @@ add_firewall_rule() {
 	[ -n "$ISP_DNS" ] && {
 		#echolog "处理 ISP DNS 例外..."
 		for ispip in $ISP_DNS; do
-			ipset -! add $IPSET_WHITELIST $ispip >/dev/null 2>&1 &
-			#echolog "  - 追加到白名单：${ispip}"
+			ipset -! add $IPSET_WHITELIST $ispip
+			echolog "  - [$?]追加ISP IPv4 DNS到白名单：${ispip}"
 		done
 	}
 
 	[ -n "$ISP_DNS6" ] && {
 		#echolog "处理 ISP IPv6 DNS 例外..."
 		for ispip6 in $ISP_DNS6; do
-			ipset -! add $IPSET_WHITELIST6 $ispip6 >/dev/null 2>&1 &
-			#echolog "  - 追加到白名单：${ispip6}"
+			ipset -! add $IPSET_WHITELIST6 $ispip6
+			echolog "  - [$?]追加ISP IPv6 DNS到白名单：${ispip6}"
 		done
 	}
 
@@ -814,6 +812,14 @@ add_firewall_rule() {
 	$ipt_m -N PSW_OUTPUT
 	$ipt_m -A PSW_OUTPUT $(dst $IPSET_LANLIST) -j RETURN
 	$ipt_m -A PSW_OUTPUT $(dst $IPSET_VPSLIST) -j RETURN
+	[ -n "$LOCAL_DNS" ] && {
+		for local_dns in $(echo $LOCAL_DNS | tr ',' ' '); do
+			local dns_address=$(echo $local_dns | awk -F '#' '{print $1}')
+			local dns_port=$(echo $local_dns | awk -F '#' '{print $2}')
+			$ipt_m -A PSW_OUTPUT -p udp -d ${dns_address} --dport ${dns_port:-53} -j RETURN
+			echolog "  - [$?]追加直连DNS到iptables：${dns_address}:${dns_port:-53}"
+		done
+	}
 	[ "${USE_DIRECT_LIST}" = "1" ] && $ipt_m -A PSW_OUTPUT $(dst $IPSET_WHITELIST) -j RETURN
 	$ipt_m -A PSW_OUTPUT -m mark --mark 0xff -j RETURN
 	[ "${USE_BLOCK_LIST}" = "1" ] && $ipt_m -A PSW_OUTPUT $(dst $IPSET_BLOCKLIST) -j DROP
@@ -1037,7 +1043,7 @@ add_firewall_rule() {
 				$ipt_m -A PSW_OUTPUT -p udp $(factor $UDP_REDIR_PORTS "-m multiport --dport") $(dst $IPSET_SHUNTLIST) -j PSW_RULE
 				[ "${USE_PROXY_LIST}" = "1" ] && $ipt_m -A PSW_OUTPUT -p udp $(factor $UDP_REDIR_PORTS "-m multiport --dport") $(dst $IPSET_BLACKLIST) -j PSW_RULE
 				[ "${USE_GFW_LIST}" = "1" ] && $ipt_m -A PSW_OUTPUT -p udp $(factor $UDP_REDIR_PORTS "-m multiport --dport") $(dst $IPSET_GFW) -j PSW_RULE
-				[ "${CHN_LIST}" != "0" ] && $ipt_m -A PSW_OUTPUT -p udp $(factor $UDP_REDIR_PORTS "-m multiport --dport") $(dst $IPSET_CHN)$(get_jump_ipt ${CHN_LIST} "-j PSW_RULE")
+				[ "${CHN_LIST}" != "0" ] && $ipt_m -A PSW_OUTPUT -p udp $(factor $UDP_REDIR_PORTS "-m multiport --dport") $(dst $IPSET_CHN) $(get_jump_ipt ${CHN_LIST} "-j PSW_RULE")
 				[ "${LOCALHOST_UDP_PROXY_MODE}" != "disable" ] && $ipt_m -A PSW_OUTPUT -p udp $(factor $UDP_REDIR_PORTS "-m multiport --dport") -j PSW_RULE
 				$ipt_m -A PSW $(comment "本机") -p udp -i lo $(REDIRECT $UDP_REDIR_PORT TPROXY)
 			}
