@@ -1,6 +1,6 @@
 module("luci.passwall.util_xray", package.seeall)
 local api = require "luci.passwall.api"
-local uci = api.uci
+local uci = api.libuci
 local sys = api.sys
 local jsonc = api.jsonc
 local appname = "passwall"
@@ -191,12 +191,6 @@ function gen_outbound(flag, node, tag, proxy_table)
 					earlyDataHeaderName = (node.ws_earlyDataHeaderName) and node.ws_earlyDataHeaderName or nil,
 					heartbeatPeriod = tonumber(node.ws_heartbeatPeriod) or nil
 				} or nil,
-				httpSettings = (node.transport == "h2") and {
-					path = node.h2_path or "/",
-					host = node.h2_host,
-					read_idle_timeout = tonumber(node.h2_read_idle_timeout) or nil,
-					health_check_timeout = tonumber(node.h2_health_check_timeout) or nil
-				} or nil,
 				dsSettings = (node.transport == "ds") and
 					{path = node.ds_path} or nil,
 				quicSettings = (node.transport == "quic") and {
@@ -252,7 +246,9 @@ function gen_outbound(flag, node, tag, proxy_table)
 					{
 						address = node.address,
 						port = tonumber(node.port),
-						method = node.method or nil,
+						method = (node.method == "chacha20-ietf-poly1305" and "chacha20-poly1305") or
+							(node.method == "xchacha20-ietf-poly1305" and "xchacha20-poly1305") or
+							(node.method ~= "" and node.method) or nil,
 						ivCheck = (node.protocol == "shadowsocks") and node.iv_check == "1" or nil,
 						uot = (node.protocol == "shadowsocks") and node.uot == "1" or nil,
 						password = node.password or "",
@@ -487,9 +483,6 @@ function gen_config_server(node)
 					wsSettings = (node.transport == "ws") and {
 						host = node.ws_host or nil,
 						path = node.ws_path
-					} or nil,
-					httpSettings = (node.transport == "h2") and {
-						path = node.h2_path, host = node.h2_host
 					} or nil,
 					dsSettings = (node.transport == "ds") and {
 						path = node.ds_path

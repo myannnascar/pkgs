@@ -1,12 +1,12 @@
 local api = require "luci.passwall.api"
 local appname = "passwall"
-local uci = api.uci
 local datatypes = api.datatypes
+local fs = api.fs
 local has_singbox = api.finded_com("singbox")
 local has_xray = api.finded_com("xray")
-local has_gfwlist = api.fs.access("/usr/share/passwall/rules/gfwlist")
-local has_chnlist = api.fs.access("/usr/share/passwall/rules/chnlist")
-local has_chnroute = api.fs.access("/usr/share/passwall/rules/chnroute")
+local has_gfwlist = fs.access("/usr/share/passwall/rules/gfwlist")
+local has_chnlist = fs.access("/usr/share/passwall/rules/chnlist")
+local has_chnroute = fs.access("/usr/share/passwall/rules/chnroute")
 local chinadns_tls = os.execute("chinadns-ng -V | grep -i wolfssl >/dev/null")
 
 m = Map(appname)
@@ -37,13 +37,13 @@ end
 
 local socks_list = {}
 
-local tcp_socks_server = "127.0.0.1" .. ":" .. (uci:get(appname, "@global[0]", "tcp_node_socks_port") or "1070")
+local tcp_socks_server = "127.0.0.1" .. ":" .. (m.uci:get(appname, "@global[0]", "tcp_node_socks_port") or "1070")
 local socks_table = {}
 socks_table[#socks_table + 1] = {
 	id = tcp_socks_server,
 	remark = tcp_socks_server .. " - " .. translate("TCP Node")
 }
-uci:foreach(appname, "socks", function(s)
+m.uci:foreach(appname, "socks", function(s)
 	if s.enabled == "1" and s.node then
 		local id, remark
 		for k, n in pairs(nodes_table) do
@@ -199,7 +199,7 @@ if (has_singbox or has_xray) and #nodes_table > 0 then
 				type:depends("tcp_node", "__hide") --不存在的依赖，即始终隐藏
 			end
 
-			uci:foreach(appname, "shunt_rules", function(e)
+			m.uci:foreach(appname, "shunt_rules", function(e)
 				local id = e[".name"]
 				local node_option = vid .. "-" .. id .. "_node"
 				if id and e.remarks then
@@ -347,6 +347,7 @@ o:value("180.184.1.1")
 o:value("180.184.2.2")
 o:value("114.114.114.114")
 o:value("114.114.115.115")
+o:value("119.28.28.28")
 o:depends("direct_dns_mode", "tcp")
 
 o = s:taboption("DNS", Value, "direct_dns_dot", translate("Direct DNS DoT"))
@@ -365,7 +366,38 @@ o:depends("direct_dns_mode", "dot")
 o = s:taboption("DNS", Flag, "filter_proxy_ipv6", translate("Filter Proxy Host IPv6"), translate("Experimental feature."))
 o.default = "0"
 
+---- DNS Forward Mode
+o = s:taboption("DNS", ListValue, "dns_mode", translate("Filter Mode"))
+o:value("udp", translatef("Requery DNS By %s", "UDP"))
+o:value("tcp", translatef("Requery DNS By %s", "TCP"))
+if chinadns_tls == 0 then
+	o:value("dot", translatef("Requery DNS By %s", "DoT"))
+end
+if api.is_finded("dns2socks") then
+	o:value("dns2socks", "dns2socks")
+end
+if has_singbox then
+	o:value("sing-box", "Sing-Box")
+end
+if has_xray then
+	o:value("xray", "Xray")
+end
 if api.is_finded("smartdns") then
+	o:depends({ dns_shunt = "smartdns",  ['!reverse'] = true })
+end
+
+---- SmartDNS Forward Mode
+if api.is_finded("smartdns") then
+	o = s:taboption("DNS", ListValue, "smartdns_dns_mode", translate("Filter Mode"))
+	o:value("socks", "Socks")
+	if has_singbox then
+		o:value("sing-box", "Sing-Box")
+	end
+	if has_xray then
+		o:value("xray", "Xray")
+	end
+	o:depends({ dns_shunt = "smartdns" })
+
 	o = s:taboption("DNS", DynamicList, "smartdns_remote_dns", translate("Remote DNS"))
 	o:value("tcp://1.1.1.1")
 	o:value("tcp://8.8.4.4")
@@ -385,7 +417,7 @@ if api.is_finded("smartdns") then
 	o:value("https://dns.adguard.com/dns-query,176.103.130.130")
 	o:value("https://doh.libredns.gr/dns-query,116.202.176.26")
 	o:value("https://doh.libredns.gr/ads,116.202.176.26")
-	o:depends("dns_shunt", "smartdns")
+	o:depends({ dns_shunt = "smartdns", smartdns_dns_mode = "socks" })
 	o.cfgvalue = function(self, section)
 		return m:get(section, self.option) or {"tcp://1.1.1.1"}
 	end
@@ -409,35 +441,16 @@ if api.is_finded("smartdns") then
 	end
 end
 
----- DNS Forward Mode
-o = s:taboption("DNS", ListValue, "dns_mode", translate("Filter Mode"))
-o:value("udp", translatef("Requery DNS By %s", "UDP"))
-o:value("tcp", translatef("Requery DNS By %s", "TCP"))
-if chinadns_tls == 0 then
-	o:value("dot", translatef("Requery DNS By %s", "DoT"))
-end
-if api.is_finded("dns2socks") then
-	o:value("dns2socks", "dns2socks")
-end
-if has_singbox then
-	o:value("sing-box", "Sing-Box")
-end
-if has_xray then
-	o:value("xray", "Xray")
-end
-if api.is_finded("smartdns") then
-	o:depends({ dns_shunt = "smartdns",  ['!reverse'] = true })
-end
-
 o = s:taboption("DNS", ListValue, "xray_dns_mode", translate("Request protocol"))
 o:value("tcp", "TCP")
 o:value("tcp+doh", "TCP + DoH (" .. translate("A/AAAA type") .. ")")
 o:depends("dns_mode", "xray")
+o:depends("smartdns_dns_mode", "xray")
 o.cfgvalue = function(self, section)
 	return m:get(section, "v2ray_dns_mode")
 end
 o.write = function(self, section, value)
-	if s.fields["dns_mode"]:formvalue(section) == "xray" then
+	if s.fields["dns_mode"]:formvalue(section) == "xray" or s.fields["smartdns_dns_mode"]:formvalue(section) == "xray" then
 		return m:set(section, "v2ray_dns_mode", value)
 	end
 end
@@ -446,11 +459,12 @@ o = s:taboption("DNS", ListValue, "singbox_dns_mode", translate("Request protoco
 o:value("tcp", "TCP")
 o:value("doh", "DoH")
 o:depends("dns_mode", "sing-box")
+o:depends("smartdns_dns_mode", "sing-box")
 o.cfgvalue = function(self, section)
 	return m:get(section, "v2ray_dns_mode")
 end
 o.write = function(self, section, value)
-	if s.fields["dns_mode"]:formvalue(section) == "sing-box" then
+	if s.fields["dns_mode"]:formvalue(section) == "sing-box" or s.fields["smartdns_dns_mode"]:formvalue(section) == "sing-box" then
 		return m:set(section, "v2ray_dns_mode", value)
 	end
 end
@@ -524,16 +538,20 @@ o.description = translate("Notify the DNS server when the DNS query is notified,
 o.datatype = "ipaddr"
 o:depends({dns_mode = "sing-box"})
 o:depends({dns_mode = "xray"})
+o:depends("smartdns_dns_mode", "sing-box")
+o:depends("smartdns_dns_mode", "xray")
 
 o = s:taboption("DNS", Flag, "remote_fakedns", "FakeDNS", translate("Use FakeDNS work in the shunt domain that proxy."))
 o.default = "0"
 o:depends({dns_mode = "sing-box", dns_shunt = "dnsmasq"})
 o:depends({dns_mode = "sing-box", dns_shunt = "chinadns-ng"})
+o:depends({smartdns_dns_mode = "sing-box", dns_shunt = "smartdns"})
 o:depends({dns_mode = "xray", dns_shunt = "dnsmasq"})
 o:depends({dns_mode = "xray", dns_shunt = "chinadns-ng"})
+o:depends({smartdns_dns_mode = "xray", dns_shunt = "smartdns"})
 o.validate = function(self, value, t)
 	if value and value == "1" then
-		local _dns_mode = s.fields["dns_mode"]:formvalue(t)
+		local _dns_mode = s.fields["dns_mode"]:formvalue(t) or s.fields["smartdns_dns_mode"]:formvalue(t)
 		local _tcp_node = s.fields["tcp_node"]:formvalue(t)
 		if _dns_mode and _tcp_node then
 			if m:get(_tcp_node, "type"):lower() ~= _dns_mode then
@@ -576,7 +594,7 @@ o = s:taboption("DNS", Flag, "dns_redirect", translate("DNS Redirect"), translat
 o.default = "1"
 o.rmempty = false
 
-if (uci:get(appname, "@global_forwarding[0]", "use_nft") or "0") == "1" then
+if (m.uci:get(appname, "@global_forwarding[0]", "use_nft") or "0") == "1" then
 	o = s:taboption("DNS", Button, "clear_ipset", translate("Clear NFTSET"), translate("Try this feature if the rule modification does not take effect."))
 else
 	o = s:taboption("DNS", Button, "clear_ipset", translate("Clear IPSET"), translate("Try this feature if the rule modification does not take effect."))
@@ -711,7 +729,7 @@ o.rmempty = false
 o = s2:option(ListValue, "node", translate("Socks Node"))
 
 local n = 1
-uci:foreach(appname, "socks", function(s)
+m.uci:foreach(appname, "socks", function(s)
 	if s[".name"] == section then
 		return false
 	end
