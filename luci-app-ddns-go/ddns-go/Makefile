@@ -3,18 +3,19 @@
 # Copyright (C) 2021-2023  sirpdboy  <herboy2008@gmail.com>
 # 
 # This is free software, licensed under the Apache License, Version 2.0 .
-
+#
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ddns-go
-PKG_VERSION:=6.7.7
+PKG_VERSION:=6.8.1
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/jeessy2/ddns-go.git
-PKG_MIRROR_HASH:=424ef8965c2fe26cfbe469be6e5cd8637ba36313862631caa764c33fd8337a21
-PKG_SOURCE_VERSION:=e0dc641faefa350af644381b5dd8bc43a211b0db
+PKG_MIRROR_HASH:=0588c8a0b95c7b7a079d4655a8d5e2897ca3258fea71570adc84441934d11ffb
+PKG_SOURCE_VERSION:=a0b54749579565af6019c06fd9bfd4e7790d403e
+
 
 PKG_LICENSE:=AGPL-3.0-only
 PKG_LICENSE_FILES:=LICENSE

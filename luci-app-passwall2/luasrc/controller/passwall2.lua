@@ -7,6 +7,7 @@ local uci = api.uci				-- in funtion index()
 local http = require "luci.http"
 local util = require "luci.util"
 local i18n = require "luci.i18n"
+local fs = api.fs
 
 function index()
 	if not nixio.fs.access("/etc/config/passwall2") then
@@ -45,7 +46,7 @@ function index()
 	entry({"admin", "services", appname, "socks_config"}, cbi(appname .. "/client/socks_config")).leaf = true
 	entry({"admin", "services", appname, "acl"}, cbi(appname .. "/client/acl"), _("Access control"), 98).leaf = true
 	entry({"admin", "services", appname, "acl_config"}, cbi(appname .. "/client/acl_config")).leaf = true
-	entry({"admin", "services", appname, "log"}, form(appname .. "/client/log"), _("Watch Logs"), 999).leaf = true
+	entry({"admin", "services", appname, "log"}, form(appname .. "/client/log"), _("Log Maint"), 999).leaf = true
 
 	--[[ Server ]]
 	entry({"admin", "services", appname, "server"}, cbi(appname .. "/server/index"), _("Server-Side"), 99).leaf = true
@@ -84,6 +85,9 @@ function index()
 		entry({"admin", "services", appname, "check_" .. com}, call("com_check", com)).leaf = true
 		entry({"admin", "services", appname, "update_" .. com}, call("com_update", com)).leaf = true
 	end
+
+	--[[Backup]]
+	entry({"admin", "services", appname, "backup"}, call("create_backup")).leaf = true
 end
 
 local function http_write_json(content)
@@ -98,16 +102,14 @@ function reset_config()
 end
 
 function show_menu()
-	uci:delete(appname, "@global[0]", "hide_from_luci")
-	api.uci_save(uci, appname, true)
+	api.sh_uci_del(appname, "@global[0]", "hide_from_luci", true)
 	luci.sys.call("rm -rf /tmp/luci-*")
 	luci.sys.call("/etc/init.d/rpcd restart >/dev/null")
 	luci.http.redirect(api.url())
 end
 
 function hide_menu()
-	uci:set(appname, "@global[0]", "hide_from_luci","1")
-	api.uci_save(uci, appname, true)
+	api.sh_uci_set(appname, "@global[0]", "hide_from_luci", "1", true)
 	luci.sys.call("rm -rf /tmp/luci-*")
 	luci.sys.call("/etc/init.d/rpcd restart >/dev/null")
 	luci.http.redirect(luci.dispatcher.build_url("admin", "status", "overview"))
@@ -294,8 +296,7 @@ function set_node()
 	local config = luci.http.formvalue("config")
 	local section = luci.http.formvalue("section")
 	uci:set(appname, type, config, section)
-	api.uci_save(uci, appname, true)
-	luci.sys.call("/etc/init.d/passwall2 restart > /dev/null 2>&1 &")
+	api.uci_save(uci, appname, true, true)
 	luci.http.redirect(api.url("log"))
 end
 
@@ -440,4 +441,21 @@ function com_update(comname)
 	http_write_json(json)
 end
 
+function create_backup()
+	local backup_files = {
+		"/etc/config/passwall2",
+		"/etc/config/passwall2_server",
+		"/usr/share/passwall2/domains_excluded"
+	}
+	local date = os.date("%y%m%d%H%M")
+	local tar_file = "/tmp/passwall2-" .. date .. "-backup.tar.gz"
+	fs.remove(tar_file)
+	local cmd = "tar -czf " .. tar_file .. " " .. table.concat(backup_files, " ")
+	api.sys.call(cmd)
+	http.header("Content-Disposition", "attachment; filename=passwall2-" .. date .. "-backup.tar.gz")
+	http.header("X-Backup-Filename", "passwall2-" .. date .. "-backup.tar.gz")
+	http.prepare_content("application/octet-stream")
+	http.write(fs.readfile(tar_file))
+	fs.remove(tar_file)
+end
 
