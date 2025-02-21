@@ -1,51 +1,21 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-openclash
-PKG_VERSION:=0.46.064
-PKG_RELEASE:=5
+PKG_VERSION:=0.46.075
+PKG_RELEASE:=13
 PKG_MAINTAINER:=vernesong <https://github.com/vernesong/OpenClash>
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/$(PKG_NAME)/config
-	config PACKAGE_kmod-inet-diag
-	default y if PACKAGE_$(PKG_NAME)
-
-	config PACKAGE_luci-compat
-	default y if PACKAGE_$(PKG_NAME)
-
-	config PACKAGE_kmod-nft-tproxy
-	default y if PACKAGE_firewall4
-
-	config PACKAGE_kmod-ipt-nat
-	default y if ! PACKAGE_firewall4
-
-	config PACKAGE_iptables-mod-tproxy
-	default y if ! PACKAGE_firewall4
-
-	config PACKAGE_iptables-mod-extra
-	default y if ! PACKAGE_firewall4
-
-	config PACKAGE_dnsmasq_full_ipset
-	default y if ! PACKAGE_firewall4
-
-	config PACKAGE_dnsmasq_full_nftset
-	default y if PACKAGE_firewall4
-
-	config PACKAGE_ipset
-	default y if ! PACKAGE_firewall4
-endef
-
 define Package/$(PKG_NAME)
 	CATEGORY:=LuCI
 	SUBMENU:=3. Applications
 	TITLE:=LuCI support for clash
 	PKGARCH:=all
-	DEPENDS:=+dnsmasq-full +coreutils +coreutils-nohup +bash +curl +ca-certificates +ip-full \
-	+libcap +libcap-bin +ruby +ruby-yaml +kmod-tun +unzip \
-	+kmod-inet-diag +luci-compat
+	DEPENDS:=+dnsmasq-full +bash +curl +ca-bundle +ip-full +ruby \
+		+ruby-yaml +kmod-inet-diag +kmod-nft-tproxy +kmod-tun +unzip
 	MAINTAINER:=vernesong
 endef
 
@@ -124,9 +94,9 @@ endef
 
 define Package/$(PKG_NAME)/postrm
 #!/bin/sh
-	DEFAULT_DNSMASQ_CFGID="$$(uci -q show "dhcp.@dnsmasq[0]" | awk 'NR==1 {split($0, conf, /[.=]/); print conf[2]}')"
+	DEFAULT_DNSMASQ_CFGID="$$(uci -q show "dhcp.@dnsmasq[0]" | awk 'NR==1 {split($0, conf, /[.=]/); print conf[2]}' 2>/dev/null)"
 	if [ -f "/tmp/etc/dnsmasq.conf.$DEFAULT_DNSMASQ_CFGID" ]; then
-	   DNSMASQ_CONF_DIR="$$(awk -F '=' '/^conf-dir=/ {print $2}' "/tmp/etc/dnsmasq.conf.$DEFAULT_DNSMASQ_CFGID")"
+	   DNSMASQ_CONF_DIR="$$(awk -F '=' '/^conf-dir=/ {print $2}' "/tmp/etc/dnsmasq.conf.$DEFAULT_DNSMASQ_CFGID" 2>/dev/null)"
 	else
 	   DNSMASQ_CONF_DIR="/tmp/dnsmasq.d"
 	fi
