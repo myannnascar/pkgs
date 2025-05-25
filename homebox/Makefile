@@ -1,13 +1,8 @@
-# SPDX-License-Identifier: GPL-3.0-only
-# Copyright (c) 2020-2024 sirpdboy  herboy2008@gmail.com
-#
-
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=homebox
-PKG_VERSION:=0.0.0.2024101306
-PKG_REAL_VER:=0.0.0-dev.2024101306
-PKG_RELEASE:=17
+PKG_VERSION:=0.0.0-dev.2024101306
+PKG_RELEASE:=21
 
 ifeq ($(ARCH),aarch64)
 	H_ARCH:=arm64
@@ -44,7 +39,7 @@ endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	[ ! -f $(PKG_BUILD_DIR)/server-linux-$(H_ARCH).tar.gz ] && wget https://github.com/XGHeaven/homebox/releases/download/v$(PKG_REAL_VER)/server-linux-$(H_ARCH).tar.gz -O $(PKG_BUILD_DIR)/server-linux-$(H_ARCH).tar.gz
+	[ ! -f $(PKG_BUILD_DIR)/server-linux-$(H_ARCH).tar.gz ] && wget https://github.com/XGHeaven/homebox/releases/download/v$(PKG_VERSION)/server-linux-$(H_ARCH).tar.gz -O $(PKG_BUILD_DIR)/server-linux-$(H_ARCH).tar.gz
 	tar -xzvf $(PKG_BUILD_DIR)/server-linux-$(H_ARCH).tar.gz -C $(PKG_BUILD_DIR)
 endef
 
@@ -52,8 +47,11 @@ define Build/Compile
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_DIR) $(1)/usr/bin $(1)/etc/config $(1)/etc/init.d $(1)/etc/uci-defaults
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/server-linux-$(H_ARCH) $(1)/usr/bin/homebox
+	$(INSTALL_CONF) ./files/homebox.config $(1)/etc/config/homebox
+	$(INSTALL_BIN) ./files/homebox.init $(1)/etc/init.d/homebox
+	$(INSTALL_BIN) ./files/homebox.uci-default $(1)/etc/uci-defaults/homebox
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

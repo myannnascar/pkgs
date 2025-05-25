@@ -31,8 +31,10 @@ function gen_outbound(flag, node, tag, proxy_table)
 		end
 
 		local proxy_tag = nil
+		local run_socks_instance = true
 		if proxy_table ~= nil and type(proxy_table) == "table" then
 			proxy_tag = proxy_table.tag or nil
+			run_socks_instance = proxy_table.run_socks_instance
 		end
 
 		if node.type ~= "sing-box" then
@@ -42,18 +44,20 @@ function gen_outbound(flag, node, tag, proxy_table)
 			if tag and node_id and tag ~= node_id then
 				config_file = string.format("%s_%s_%s_%s.json", flag, tag, node_id, new_port)
 			end
-			sys.call(string.format('/usr/share/%s/app.sh run_socks "%s"> /dev/null',
-				appname,
-				string.format("flag=%s node=%s bind=%s socks_port=%s config_file=%s relay_port=%s",
-					new_port, --flag
-					node_id, --node
-					"127.0.0.1", --bind
-					new_port, --socks port
-					config_file, --config file
-					(proxy_tag and relay_port) and tostring(relay_port) or "" --relay port
+			if run_socks_instance then
+				sys.call(string.format('/usr/share/%s/app.sh run_socks "%s"> /dev/null',
+					appname,
+					string.format("flag=%s node=%s bind=%s socks_port=%s config_file=%s relay_port=%s",
+						new_port, --flag
+						node_id, --node
+						"127.0.0.1", --bind
+						new_port, --socks port
+						config_file, --config file
+						(proxy_tag and relay_port) and tostring(relay_port) or "" --relay port
+						)
 					)
 				)
-			)
+			end
 			node = {
 				protocol = "socks",
 				address = "127.0.0.1",
@@ -88,7 +92,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 			end
 			tls = {
 				enabled = true,
-				disable_sni = false, --不要在 ClientHello 中发送服务器名称.
+				disable_sni = (node.tls_disable_sni == "1") and true or false, --不要在 ClientHello 中发送服务器名称.
 				server_name = node.tls_serverName, --用于验证返回证书上的主机名，除非设置不安全。它还包含在 ClientHello 中以支持虚拟主机，除非它是 IP 地址。
 				insecure = (node.tls_allowInsecure == "1") and true or false, --接受任何服务器证书。
 				alpn = alpn, --支持的应用层协议协商列表，按优先顺序排列。如果两个对等点都支持 ALPN，则选择的协议将是此列表中的一个，如果没有相互支持的协议则连接将失败。
@@ -288,7 +292,18 @@ function gen_outbound(flag, node, tag, proxy_table)
 		end
 
 		if node.protocol == "hysteria" then
+			local server_ports = {}
+			if node.hysteria_hop then
+				node.hysteria_hop = string.gsub(node.hysteria_hop, "-", ":")
+				for range in node.hysteria_hop:gmatch("([^,]+)") do
+					if range:match("^%d+:%d+$") then
+						table.insert(server_ports, range)
+					end
+				end
+			end
 			protocol_table = {
+				server_ports = next(server_ports) and server_ports or nil,
+				hop_interval = next(server_ports) and "30s" or nil,
 				up_mbps = tonumber(node.hysteria_up_mbps),
 				down_mbps = tonumber(node.hysteria_down_mbps),
 				obfs = node.hysteria_obfs,
@@ -379,6 +394,13 @@ function gen_outbound(flag, node, tag, proxy_table)
 						dynamic_record_sizing_disabled = node.dynamic_record_sizing_disabled and true or false
 					}
 				}
+			}
+		end
+
+		if node.protocol == "anytls" then
+			protocol_table = {
+				password = (node.password and node.password ~= "") and node.password or "",
+				tls = tls
 			}
 		end
 
@@ -667,6 +689,18 @@ function gen_config_server(node)
 		}
 	end
 
+	if node.protocol == "anytls" then
+		protocol_table = {
+			users = {
+				{
+					name = (node.username and node.username ~= "") and node.username or "sekai",
+					password = node.password
+				}
+			},
+			tls = tls,
+		}
+	end
+
 	if node.protocol == "direct" then
 		protocol_table = {
 			network = (node.d_protocol ~= "TCP,UDP") and node.d_protocol or nil,
@@ -801,6 +835,7 @@ function gen_config(var)
 	local remote_dns_client_ip = var["-remote_dns_client_ip"]
 	local dns_cache = var["-dns_cache"]
 	local tags = var["-tags"]
+	local no_run = var["-no_run"]
 
 	local dns_domain_rules = {}
 	local dns = nil
@@ -1095,7 +1130,7 @@ function gen_config(var)
 								end
 							end
 							
-							local _outbound = gen_outbound(flag, _node, rule_name, { tag = use_proxy and preproxy_tag or nil })
+							local _outbound = gen_outbound(flag, _node, rule_name, { tag = use_proxy and preproxy_tag or nil, run_socks_instance = not no_run})
 							if _outbound then
 								_outbound.tag = _outbound.tag .. ":" .. _node.remarks
 								rule_outboundTag, last_insert_outbound = set_outbound_detour(_node, _outbound, outbounds, rule_name)
@@ -1558,7 +1593,7 @@ function gen_config(var)
 			tag = "block"
 		})
 		for index, value in ipairs(config.outbounds) do
-			if not value["_flag_proxy_tag"] and not value.detour and value["_id"] and value.server and value.server_port then
+			if not value["_flag_proxy_tag"] and not value.detour and value["_id"] and value.server and value.server_port and not no_run then
 				sys.call(string.format("echo '%s' >> %s", value["_id"], api.TMP_PATH .. "/direct_node_list"))
 			end
 			for k, v in pairs(config.outbounds[index]) do

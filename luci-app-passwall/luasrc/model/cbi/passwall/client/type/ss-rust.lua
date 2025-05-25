@@ -15,7 +15,7 @@ local function _n(name)
 end
 
 local ssrust_encrypt_method_list = {
-	"plain", "none",
+	"none", "plain",
 	"aes-128-gcm", "aes-256-gcm", "chacha20-ietf-poly1305",
 	"2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305"
 }
@@ -23,6 +23,10 @@ local ssrust_encrypt_method_list = {
 -- [[ Shadowsocks Rust ]]
 
 s.fields["type"]:value(type_name, translate("Shadowsocks Rust"))
+
+o = s:option(ListValue, _n("del_protocol")) --始终隐藏，用于删除 protocol
+o:depends({ [_n("__hide")] = "1" })
+o.rewrite_option = "protocol"
 
 o = s:option(Value, _n("address"), translate("Address (Support Domain Name)"))
 

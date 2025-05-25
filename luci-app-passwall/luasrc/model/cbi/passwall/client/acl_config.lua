@@ -250,6 +250,13 @@ o.validate = port_validate
 o:depends({ use_global_config = true })
 o:depends({ _udp_node_bool = "1" })
 
+o = s:option(DummyValue, "tips", "　")
+o.rawhtml = true
+o.cfgvalue = function(t, n)
+	return string.format('<font color="red">%s</font>',
+	translate("The port settings support single ports and ranges.<br>Separate multiple ports with commas (,).<br>Example: 21,80,443,1000:2000."))
+end
+
 o = s:option(Flag, "use_direct_list", translatef("Use %s", translate("Direct List")))
 o.default = "1"
 o:depends({ _tcp_node_bool = "1" })
@@ -305,7 +312,10 @@ o.default = "0"
 o:depends({ _tcp_node_bool = "1" })
 
 ---- DNS Forward Mode
-o = s:option(ListValue, "dns_mode", translate("Filter Mode"))
+o = s:option(ListValue, "dns_mode", translate("Filter Mode"),
+			 "<font color='red'>" .. translate(
+				 "If the node uses Xray/Sing-Box shunt, select the matching filter mode (Xray/Sing-Box).") ..
+				 "</font>")
 o:depends({ _tcp_node_bool = "1" })
 if api.is_finded("dns2socks") then
 	o:value("dns2socks", "dns2socks")

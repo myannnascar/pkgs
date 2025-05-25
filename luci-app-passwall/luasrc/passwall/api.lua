@@ -190,6 +190,11 @@ function base64Decode(text)
 	end
 end
 
+function base64Encode(text)
+	local result = nixio.bin.b64encode(text)
+	return result
+end
+
 --提取URL中的域名和端口(no ip)
 function get_domain_port_from_url(url)
 	local scheme, domain, port = string.match(url, "^(https?)://([%w%.%-]+):?(%d*)")
@@ -494,7 +499,8 @@ function get_valid_nodes()
 	uci:foreach(appname, "nodes", function(e)
 		e.id = e[".name"]
 		if e.type and e.remarks then
-			if e.protocol and (e.protocol == "_balancing" or e.protocol == "_shunt" or e.protocol == "_iface" or e.protocol == "_urltest") then
+			if (e.type == "sing-box" or e.type == "Xray") and e.protocol and
+			   (e.protocol == "_balancing" or e.protocol == "_shunt" or e.protocol == "_iface" or e.protocol == "_urltest") then
 				local type = e.type
 				if type == "sing-box" then type = "Sing-Box" end
 				e["remark"] = "%s：[%s] " % {type .. " " .. i18n.translatef(e.protocol), e.remarks}
@@ -521,6 +527,8 @@ function get_valid_nodes()
 							protocol = "HY"
 						elseif protocol == "hysteria2" then
 							protocol = "HY2"
+						elseif protocol == "anytls" then
+							protocol = "AnyTLS"
 						else
 							protocol = protocol:gsub("^%l",string.upper)
 						end
@@ -544,7 +552,8 @@ end
 function get_node_remarks(n)
 	local remarks = ""
 	if n then
-		if n.protocol and (n.protocol == "_balancing" or n.protocol == "_shunt" or n.protocol == "_iface" or n.protocol == "_urltest") then
+		if (n.type == "sing-box" or n.type == "Xray") and n.protocol and
+		   (n.protocol == "_balancing" or n.protocol == "_shunt" or n.protocol == "_iface" or n.protocol == "_urltest") then
 			remarks = "%s：[%s] " % {n.type .. " " .. i18n.translatef(n.protocol), n.remarks}
 		else
 			local type2 = n.type
@@ -554,9 +563,22 @@ function get_node_remarks(n)
 					protocol = "VMess"
 				elseif protocol == "vless" then
 					protocol = "VLESS"
+				elseif protocol == "shadowsocks" then
+					protocol = "SS"
+				elseif protocol == "shadowsocksr" then
+					protocol = "SSR"
+				elseif protocol == "wireguard" then
+					protocol = "WG"
+				elseif protocol == "hysteria" then
+					protocol = "HY"
+				elseif protocol == "hysteria2" then
+					protocol = "HY2"
+				elseif protocol == "anytls" then
+					protocol = "AnyTLS"
 				else
 					protocol = protocol:gsub("^%l",string.upper)
 				end
+				if type2 == "sing-box" then type2 = "Sing-Box" end
 				type2 = type2 .. " " .. protocol
 			end
 			remarks = "%s：[%s]" % {type2, n.remarks}
@@ -1215,11 +1237,16 @@ function luci_types(id, m, s, type_name, option_prefix)
 				end
 
 				s.fields[key].cfgvalue = function(self, section)
-					if self.rewrite_option then
-						return m:get(section, self.rewrite_option)
+					-- 添加自定义 custom_cfgvalue 属性，如果有自定义的 custom_cfgvalue 函数，则使用自定义的 cfgvalue 逻辑
+					if self.custom_cfgvalue then
+						return self:custom_cfgvalue(section)
 					else
-						if self.option:find(option_prefix) == 1 then
-							return m:get(section, self.option:sub(1 + #option_prefix))
+						if self.rewrite_option then
+							return m:get(section, self.rewrite_option)
+						else
+							if self.option:find(option_prefix) == 1 then
+								return m:get(section, self.option:sub(1 + #option_prefix))
+							end
 						end
 					end
 				end
