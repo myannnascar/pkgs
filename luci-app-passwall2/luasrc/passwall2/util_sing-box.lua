@@ -8,8 +8,9 @@ local fs = api.fs
 local CACHE_PATH = api.CACHE_PATH
 local split = api.split
 
-local local_version = api.get_app_version("sing-box")
-local version_ge_1_11_0 = api.compare_versions(local_version:match("[^v]+"), ">=", "1.11.0")
+local local_version = api.get_app_version("sing-box"):match("[^v]+")
+local version_ge_1_11_0 = api.compare_versions(local_version, ">=", "1.11.0")
+local version_ge_1_12_0 = api.compare_versions(local_version, ">=", "1.12.0")
 
 local new_port
 
@@ -31,9 +32,13 @@ function gen_outbound(flag, node, tag, proxy_table)
 		end
 
 		local proxy_tag = nil
+		local fragment = nil
+		local record_fragment = nil
 		local run_socks_instance = true
 		if proxy_table ~= nil and type(proxy_table) == "table" then
 			proxy_tag = proxy_table.tag or nil
+			fragment = proxy_table.fragment or nil
+			record_fragment = proxy_table.record_fragment or nil
 			run_socks_instance = proxy_table.run_socks_instance
 		end
 
@@ -98,6 +103,8 @@ function gen_outbound(flag, node, tag, proxy_table)
 				alpn = alpn, --支持的应用层协议协商列表，按优先顺序排列。如果两个对等点都支持 ALPN，则选择的协议将是此列表中的一个，如果没有相互支持的协议则连接将失败。
 				--min_version = "1.2",
 				--max_version = "1.3",
+				fragment = fragment,
+				record_fragment = record_fragment,
 				ech = {
 					enabled = (node.ech == "1") and true or false,
 					config = node.ech_config and split(node.ech_config:gsub("\\n", "\n"), "\n") or {},
@@ -135,10 +142,21 @@ function gen_outbound(flag, node, tag, proxy_table)
 
 		local v2ray_transport = nil
 
+		if node.transport == "tcp" and node.tcp_guise == "http" and (node.tcp_guise_http_host or "") ~= "" then  --模拟xray raw(tcp)传输
+			v2ray_transport = {
+				type = "http",
+				host = node.tcp_guise_http_host,
+				path = (node.tcp_guise_http_path and node.tcp_guise_http_path[1]) or "/",
+				idle_timeout = (node.http_h2_health_check == "1") and node.http_h2_read_idle_timeout or nil,
+				ping_timeout = (node.http_h2_health_check == "1") and node.http_h2_health_check_timeout or nil,
+			}
+			--不强制执行 TLS。如果未配置 TLS，将使用纯 HTTP 1.1。
+		end
+
 		if node.transport == "http" then
 			v2ray_transport = {
 				type = "http",
-				host = { node.http_host },
+				host = node.http_host or {},
 				path = node.http_path or "/",
 				idle_timeout = (node.http_h2_health_check == "1") and node.http_h2_read_idle_timeout or nil,
 				ping_timeout = (node.http_h2_health_check == "1") and node.http_h2_health_check_timeout or nil,
@@ -316,6 +334,8 @@ function gen_outbound(flag, node, tag, proxy_table)
 					enabled = true,
 					server_name = node.tls_serverName,
 					insecure = (node.tls_allowInsecure == "1") and true or false,
+					fragment = fragment,
+					record_fragment = record_fragment,
 					alpn = (node.hysteria_alpn and node.hysteria_alpn ~= "") and {
 						node.hysteria_alpn
 					} or nil,
@@ -350,6 +370,8 @@ function gen_outbound(flag, node, tag, proxy_table)
 					enabled = true,
 					server_name = node.tls_serverName,
 					insecure = (node.tls_allowInsecure == "1") and true or false,
+					fragment = fragment,
+					record_fragment = record_fragment,
 					alpn = (node.tuic_alpn and node.tuic_alpn ~= "") and {
 						node.tuic_alpn
 					} or nil,
@@ -387,6 +409,8 @@ function gen_outbound(flag, node, tag, proxy_table)
 					enabled = true,
 					server_name = node.tls_serverName,
 					insecure = (node.tls_allowInsecure == "1") and true or false,
+					fragment = fragment,
+					record_fragment = record_fragment,
 					ech = {
 						enabled = (node.ech == "1") and true or false,
 						config = node.ech_config and split(node.ech_config:gsub("\\n", "\n"), "\n") or {},
@@ -400,6 +424,9 @@ function gen_outbound(flag, node, tag, proxy_table)
 		if node.protocol == "anytls" then
 			protocol_table = {
 				password = (node.password and node.password ~= "") and node.password or "",
+				idle_session_check_interval = "30s",
+				idle_session_timeout = "30s",
+				min_idle_session = 5,
 				tls = tls
 			}
 		end
@@ -428,6 +455,7 @@ function gen_config_server(node)
 	if node.tls == "1" and node.reality == "1" then
 		tls.certificate_path = nil
 		tls.key_path = nil
+		tls.server_name = node.reality_handshake_server
 		tls.reality = {
 			enabled = true,
 			private_key = node.reality_private_key,
@@ -468,7 +496,7 @@ function gen_config_server(node)
 	if node.transport == "http" then
 		v2ray_transport = {
 			type = "http",
-			host = node.http_host,
+			host = node.http_host or {},
 			path = node.http_path or "/",
 		}
 	end
@@ -963,7 +991,7 @@ function gen_config(var)
 				end
 				if is_new_ut_node then
 					local ut_node = uci:get_all(appname, ut_node_id)
-					local outbound = gen_outbound(flag, ut_node, ut_node_tag)
+					local outbound = gen_outbound(flag, ut_node, ut_node_tag, { fragment = singbox_settings.fragment == "1" or nil, record_fragment = singbox_settings.record_fragment == "1" or nil, run_socks_instance = not no_run })
 					if outbound then
 						outbound.tag = outbound.tag .. ":" .. ut_node.remarks
 						table.insert(outbounds, outbound)
@@ -977,9 +1005,9 @@ function gen_config(var)
 				tag = urltest_tag,
 				outbounds = valid_nodes,
 				url = _node.urltest_url or "https://www.gstatic.com/generate_204",
-				interval = _node.urltest_interval and tonumber(_node.urltest_interval) and string.format("%dm", tonumber(_node.urltest_interval) / 60) or "3m",
-				tolerance = _node.urltest_tolerance and tonumber(_node.urltest_tolerance) and tonumber(_node.urltest_tolerance) or 50,
-				idle_timeout = _node.urltest_idle_timeout and tonumber(_node.urltest_idle_timeout) and string.format("%dm", tonumber(_node.urltest_idle_timeout) / 60) or "30m",
+				interval = (api.format_go_time(_node.urltest_interval) ~= "0s") and api.format_go_time(_node.urltest_interval) or "3m",
+				tolerance = (_node.urltest_tolerance and tonumber(_node.urltest_tolerance) > 0) and tonumber(_node.urltest_tolerance) or 50,
+				idle_timeout = (api.format_go_time(_node.urltest_idle_timeout) ~= "0s") and api.format_go_time(_node.urltest_idle_timeout) or "30m",
 				interrupt_exist_connections = (_node.urltest_interrupt_exist_connections == "true" or _node.urltest_interrupt_exist_connections == "1") and true or false
 			}
 			table.insert(outbounds, outbound)
@@ -1129,8 +1157,19 @@ function gen_config(var)
 									})
 								end
 							end
-							
-							local _outbound = gen_outbound(flag, _node, rule_name, { tag = use_proxy and preproxy_tag or nil, run_socks_instance = not no_run})
+							local proxy_table = {
+								tag = use_proxy and preproxy_tag or nil,
+								run_socks_instance = not no_run
+							}
+							if not proxy_table.tag then
+								if singbox_settings.fragment == "1" then
+									proxy_table.fragment = true
+								end
+								if singbox_settings.record_fragment == "1" then
+									proxy_table.record_fragment = true
+								end
+							end
+							local _outbound = gen_outbound(flag, _node, rule_name, proxy_table)
 							if _outbound then
 								_outbound.tag = _outbound.tag .. ":" .. _node.remarks
 								rule_outboundTag, last_insert_outbound = set_outbound_detour(_node, _outbound, outbounds, rule_name)
@@ -1333,7 +1372,7 @@ function gen_config(var)
 				sys.call(string.format("mkdir -p %s && touch %s/%s", api.TMP_IFACE_PATH, api.TMP_IFACE_PATH, node.iface))
 			end
 		else
-			local outbound = gen_outbound(flag, node)
+			local outbound = gen_outbound(flag, node, nil, { fragment = singbox_settings.fragment == "1" or nil, record_fragment = singbox_settings.record_fragment == "1" or nil, run_socks_instance = not no_run })
 			if outbound then
 				outbound.tag = outbound.tag .. ":" .. node.remarks
 				COMMON.default_outbound_tag, last_insert_outbound = set_outbound_detour(node, outbound, outbounds)
@@ -1507,6 +1546,18 @@ function gen_config(var)
 					table.insert(dns.rules, dns_rule)
 				end
 			end
+		end
+
+		if remote_dns_fake and default_dns_flag == "remote" then
+			-- When default is not direct and enable fakedns, default DNS use FakeDNS.
+			local fakedns_dns_rule = {
+				query_type = {
+					"A", "AAAA"
+				},
+				server = fakedns_tag,
+				disable_cache = true
+			}
+			table.insert(dns.rules, fakedns_dns_rule)
 		end
 	
 		table.insert(inbounds, {

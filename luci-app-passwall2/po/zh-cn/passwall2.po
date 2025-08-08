@@ -46,6 +46,9 @@ msgstr "规则列表"
 msgid "Access control"
 msgstr "访问控制"
 
+msgid "Watch Logs"
+msgstr "查看日志"
+
 msgid "Node Config"
 msgstr "节点配置"
 
@@ -157,8 +160,8 @@ msgstr "直连查询策略"
 msgid "Remote Query Strategy"
 msgstr "远程查询策略"
 
-msgid "Use FakeDNS work in the shunt domain that proxy."
-msgstr "需要代理的分流规则域名使用 FakeDNS。"
+msgid "Use FakeDNS work in the domain that proxy."
+msgstr "需要代理的域名使用 FakeDNS。"
 
 msgid "Domain Override"
 msgstr "域名重写"
@@ -340,7 +343,7 @@ msgstr "负载均衡策略"
 msgid "Fallback Node"
 msgstr "后备节点"
 
-msgid "Use Custome Probe URL"
+msgid "Use Custom Probe URL"
 msgstr "使用自定义探测网址"
 
 msgid "By default the built-in probe URL will be used, enable this option to use a custom probe URL."
@@ -355,8 +358,14 @@ msgstr "用于检测连接状态的网址。"
 msgid "Probe Interval"
 msgstr "探测间隔"
 
-msgid "The interval between initiating probes. The time format is numbers + units, such as '10s', '2h45m', and the supported time units are <code>ns</code>, <code>us</code>, <code>ms</code>, <code>s</code>, <code>m</code>, <code>h</code>, which correspond to nanoseconds, microseconds, milliseconds, seconds, minutes, and hours, respectively."
-msgstr "发起探测的间隔。时间格式为数字+单位，比如<code>&quot;10s&quot;</code>, <code>&quot;2h45m&quot;</code>，支持的时间单位有 <code>ns</code>，<code>us</code>，<code>ms</code>，<code>s</code>，<code>m</code>，<code>h</code>，分别对应纳秒、微秒、毫秒、秒、分、时。"
+msgid "The interval between initiating probes."
+msgstr "发起探测的间隔。"
+
+msgid "The time format is numbers + units, such as '10s', '2h45m', and the supported time units are <code>s</code>, <code>m</code>, <code>h</code>, which correspond to seconds, minutes, and hours, respectively."
+msgstr "时间格式为数字+单位，比如<code>&quot;10s&quot;</code>, <code>&quot;2h45m&quot;</code>，支持的时间单位有 <code>s</code>，<code>m</code>，<code>h</code>，分别对应秒、分、时。"
+
+msgid "When the unit is not filled in, it defaults to seconds."
+msgstr "未填写单位时，默认为秒。"
 
 msgid "Preferred Node Count"
 msgstr "优选节点数量"
@@ -931,8 +940,14 @@ msgstr "订阅网址"
 msgid "Subscribe URL Access Method"
 msgstr "订阅网址访问方式"
 
-msgid "Please input the subscription url first, save and submit before manual subscription."
-msgstr "请输入订阅网址保存应用后再手动订阅。"
+msgid "When adding a new subscription, please save and apply before manually subscribing. If you only change the subscription URL, you can subscribe manually, and the system will save it automatically."
+msgstr "新增订阅请先保存并应用后再手动订阅；如仅修改订阅地址，可直接手动订阅，系统将自动保存。"
+
+msgid "Please save and apply before manually subscribing."
+msgstr "请先保存并应用后再手动订阅。"
+
+msgid "Subscribe URL cannot be empty."
+msgstr "订阅网址不能为空。"
 
 msgid "Subscribe via proxy"
 msgstr "通过代理订阅"
@@ -948,6 +963,9 @@ msgstr "删除所有订阅节点"
 
 msgid "Delete the subscribed node"
 msgstr "删除已订阅的节点"
+
+msgid "Are you sure you want to delete all subscribed nodes?"
+msgstr "您确定要删除所有已订阅的节点吗？"
 
 msgid "Manual subscription All"
 msgstr "手动订阅全部"
@@ -1114,6 +1132,9 @@ msgstr "快速打开"
 msgid "plugin"
 msgstr "插件"
 
+msgid "Supports custom SIP003 plugins, Make sure the plugin is installed."
+msgstr "支持自定义 SIP003 插件，请确保插件已安装。"
+
 msgid "opts"
 msgstr "插件选项"
 
@@ -1164,6 +1185,9 @@ msgstr "系统接口名称"
 
 msgid "Decimal numbers separated by \",\" or Base64-encoded strings."
 msgstr "用“,”隔开的十进制数字或 Base64 编码字符串。"
+
+msgid "Camouflage Domain"
+msgstr "伪装域名"
 
 msgid "Camouflage Type"
 msgstr "伪装类型"
@@ -1243,8 +1267,11 @@ msgstr "TUIC socks5 服务器可以从外部接收的最大数据包大小（以
 msgid "Set if the listening socket should be dual-stack"
 msgstr "设置监听套接字为双栈"
 
-msgid "<br />none: default, no masquerade, data sent is packets with no characteristics.<br />srtp: disguised as an SRTP packet, it will be recognized as video call data (such as FaceTime).<br />utp: packets disguised as uTP will be recognized as bittorrent downloaded data.<br />wechat-video: packets disguised as WeChat video calls.<br />dtls: disguised as DTLS 1.2 packet.<br />wireguard: disguised as a WireGuard packet. (not really WireGuard protocol)"
-msgstr "<br />none：默认值，不进行伪装，发送的数据是没有特征的数据包。<br />srtp：伪装成 SRTP 数据包，会被识别为视频通话数据（如 FaceTime）。<br />utp：伪装成 uTP 数据包，会被识别为 BT 下载数据。<br />wechat-video：伪装成微信视频通话的数据包。<br />dtls：伪装成 DTLS 1.2 数据包。<br />wireguard：伪装成 WireGuard 数据包。(并不是真正的 WireGuard 协议)"
+msgid "<br />none: default, no masquerade, data sent is packets with no characteristics.<br />srtp: disguised as an SRTP packet, it will be recognized as video call data (such as FaceTime).<br />utp: packets disguised as uTP will be recognized as bittorrent downloaded data.<br />wechat-video: packets disguised as WeChat video calls.<br />dtls: disguised as DTLS 1.2 packet.<br />wireguard: disguised as a WireGuard packet. (not really WireGuard protocol)<br />dns: Disguising traffic as DNS requests."
+msgstr "<br />none：默认值，不进行伪装，发送的数据是没有特征的数据包。<br />srtp：伪装成 SRTP 数据包，会被识别为视频通话数据（如 FaceTime）。<br />utp：伪装成 uTP 数据包，会被识别为 BT 下载数据。<br />wechat-video：伪装成微信视频通话的数据包。<br />dtls：伪装成 DTLS 1.2 数据包。<br />wireguard：伪装成 WireGuard 数据包。(并不是真正的 WireGuard 协议)<br />dns：把流量伪装成 DNS 请求。"
+
+msgid "Use it together with the DNS disguised type. You can fill in any domain."
+msgstr "配合伪装类型 DNS 使用，可随便填一个域名。"
 
 msgid "A legal file path. This file must not exist before running."
 msgstr "一个合法的文件路径。在运行之前，这个文件必须不存在。"
@@ -1529,10 +1556,10 @@ msgid "Protocol parameter. Enable length block encryption."
 msgstr "协议参数。启用长度块加密。"
 
 msgid "ECH Config"
-msgstr "ECH 密钥"
+msgstr "ECH 配置"
 
 msgid "ECH Key"
-msgstr "ECH 配置"
+msgstr "ECH 密钥"
 
 msgid "PQ signature schemes"
 msgstr "后量子对等证书签名方案"
@@ -1566,6 +1593,12 @@ msgstr "分片间隔"
 
 msgid "Fragmentation interval (ms)"
 msgstr "分片间隔（ms）"
+
+msgid "Split handshake data into multiple TLS records for better censorship evasion. Low overhead. Recommended to enable first."
+msgstr "将握手数据拆分为多个 TLS 记录，提升抗封锁能力，几乎不增加延迟，建议优先启用。"
+
+msgid "Split handshake into multiple TCP segments. Enhances obfuscation. May increase delay. Use only if needed."
+msgstr "将 TLS 握手数据分为多个 TCP 包发送，提高伪装性，可能增加延迟，仅在封锁严重时使用。"
 
 msgid "Noise"
 msgstr "噪声"
@@ -1612,8 +1645,8 @@ msgstr "仅 IPv4"
 msgid "IPv6 Only"
 msgstr "仅 IPv6"
 
-msgid "Log Maint"
-msgstr "日志维护"
+msgid "Maintain"
+msgstr "维护"
 
 msgid "Backup and Restore"
 msgstr "备份还原"
@@ -1648,6 +1681,15 @@ msgstr "恢复默认配置"
 msgid "Do Reset"
 msgstr "执行重置"
 
+msgid "Please select a file first."
+msgstr "请先选择一个文件。"
+
+msgid "Invalid file type. Please upload a .tar.gz file."
+msgstr "文件类型无效，请上传一个 .tar.gz 文件。"
+
+msgid "File size exceeds 10MB limit."
+msgstr "文件大小超过 10MB 限制。"
+
 msgid "Do you want to restore the client to default settings?"
 msgstr "是否要恢复客户端默认配置？"
 
@@ -1666,9 +1708,6 @@ msgstr "要测试的节点列表，<a target='_blank' href='https://sing-box.sag
 msgid "Test interval"
 msgstr "测试间隔"
 
-msgid "The test interval in seconds."
-msgstr "测试间隔时间（单位：秒）。"
-
 msgid "Test interval must be less or equal than idle timeout."
 msgstr "测试间隔时间必须小于或等于空闲超时时间。"
 
@@ -1681,8 +1720,8 @@ msgstr "测试容差时间（单位：毫秒）。"
 msgid "Idle timeout"
 msgstr "空闲超时"
 
-msgid "The idle timeout in seconds."
-msgstr "空闲超时时间（单位：秒）。"
+msgid "The idle timeout."
+msgstr "空闲超时时间。"
 
 msgid "Interrupt existing connections"
 msgstr "中断现有连接"
@@ -1704,3 +1743,42 @@ msgstr "自定义配置"
 
 msgid "Must be JSON text!"
 msgstr "必须是 JSON 文本内容！"
+
+msgid "Geo View"
+msgstr "Geo 查询"
+
+msgid "Query"
+msgstr "查询"
+
+msgid "Querying"
+msgstr "查询中"
+
+msgid "Please enter query content!"
+msgstr "请输入查询内容！"
+
+msgid "No results were found!"
+msgstr "未找到任何结果！"
+
+msgid "Domain/IP Query"
+msgstr "域名/IP 查询"
+
+msgid "GeoIP/Geosite Query"
+msgstr "GeoIP/Geosite 查询"
+
+msgid "Enter a domain or IP to query the Geo rule list they belong to."
+msgstr "输入域名/IP，查询它们所在的 Geo 规则列表。"
+
+msgid "Enter a GeoIP or Geosite to extract the domains/IPs they contain. Format: geoip:cn or geosite:gfw"
+msgstr "输入 GeoIP/Geosite，提取它们所包含的域名/IP。格式：geoip:cn 或 geosite:gfw"
+
+msgid "Tips:"
+msgstr "小贴士："
+
+msgid "By entering a domain or IP, you can query the Geo rule list they belong to."
+msgstr "可以通过输入域名/IP，查询它们所在的 Geo 规则列表。"
+
+msgid "By entering a GeoIP or Geosite, you can extract the domains/IPs they contain."
+msgstr "可以通过输入 GeoIP/Geosite，提取它们所包含的域名/IP。"
+
+msgid "Use the GeoIP/Geosite query function to verify if the entered Geo rules are correct."
+msgstr "利用 GeoIP/Geosite 查询功能，可以验证输入的 Geo 规则是否正确。"
