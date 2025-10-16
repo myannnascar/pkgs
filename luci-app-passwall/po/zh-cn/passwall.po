@@ -139,9 +139,6 @@ msgstr "TCP 节点必须是 '%s' 类型才能使用 FakeDNS。"
 msgid "Direct DNS"
 msgstr "直连 DNS"
 
-msgid "Direct DNS DoT"
-msgstr "直连 DNS DoT"
-
 msgid "Remote DNS"
 msgstr "远程 DNS"
 
@@ -171,9 +168,6 @@ msgstr "请求协议"
 
 msgid "Remote DNS DoH"
 msgstr "远程 DNS DoH"
-
-msgid "Remote DNS DoT"
-msgstr "远程 DNS DoT"
 
 msgid "Notify the DNS server when the DNS query is notified, the location of the client (cannot be a private IP address)."
 msgstr "用于 DNS 查询时通知 DNS 服务器，客户端所在的地理位置（不能是私有 IP 地址）。"
@@ -240,12 +234,6 @@ msgstr "清空 IPSET"
 
 msgid "Clear NFTSET"
 msgstr "清空 NFTSET"
-
-msgid "DoT Cert verify"
-msgstr "DoT 证书验证"
-
-msgid "Verify DoT SSL cert. (May fail on some platforms!)"
-msgstr "验证 DoT SSL 证书。（在某些平台可能无法验证，谨慎开启！）"
 
 msgid "Try this feature if the rule modification does not take effect."
 msgstr "如果修改规则后没有生效，请尝试此功能。"
@@ -650,7 +638,10 @@ msgid "Lazy Start"
 msgstr "延迟启动"
 
 msgid "Encrypt Method"
-msgstr "加密"
+msgstr "加密方式"
+
+msgid "Encrypt Key"
+msgstr "加密密钥"
 
 msgid "Latency"
 msgstr "延迟"
@@ -906,6 +897,9 @@ msgstr "强制更新"
 
 msgid "Manually update"
 msgstr "手动更新"
+
+msgid "Update Options"
+msgstr "更新选项"
 
 msgid "The latest version: %s, currently does not support automatic update, if you need to update, please compile or download the ipk and then manually install."
 msgstr "最新版本：%s，目前暂不支持自动更新，如需更新，请自行编译或下载 ipk 然后手动安装。"
@@ -1417,9 +1411,6 @@ msgstr "<br />none：默认值，不进行伪装，发送的数据是没有特�
 msgid "Use it together with the DNS disguised type. You can fill in any domain."
 msgstr "配合伪装类型 DNS 使用，可随便填一个域名。"
 
-msgid "A legal file path. This file must not exist before running."
-msgstr "一个合法的文件路径。在运行之前，这个文件必须不存在。"
-
 msgid "Auth"
 msgstr "身份认证"
 
@@ -1759,6 +1750,12 @@ msgstr "分片间隔"
 msgid "Fragmentation interval (ms)"
 msgstr "分片间隔（ms）"
 
+msgid "Max Split"
+msgstr "最大分片数"
+
+msgid "Limit the maximum number of splits."
+msgstr "限制分片的最大数量。"
+
 msgid "Split handshake data into multiple TLS records for better censorship evasion. Low overhead. Recommended to enable first."
 msgstr "将握手数据拆分为多个 TLS 记录，提升抗封锁能力，几乎不增加延迟，建议优先启用。"
 
@@ -1782,6 +1779,9 @@ msgstr "数据包"
 
 msgid "Delay (ms)"
 msgstr "延迟（ms）"
+
+msgid "IP Type"
+msgstr "IP 类型"
 
 msgid "If is domain name, The requested domain name will be resolved to IP before connect."
 msgstr "如果是域名，域名将在请求发出之前解析为 IP。"
@@ -1974,3 +1974,6 @@ msgstr "客户端版本"
 
 msgid "Random version will be used if empty."
 msgstr "如留空，则使用随机版本。"
+
+msgid "The configured type also applies to the core specified when manually importing nodes."
+msgstr "配置的类型同样适用于手动导入节点时所指定的核心程序。"

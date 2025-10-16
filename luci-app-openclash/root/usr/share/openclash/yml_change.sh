@@ -1,22 +1,21 @@
 #!/bin/sh
 . /usr/share/openclash/ruby.sh
 . /usr/share/openclash/log.sh
+. /usr/share/openclash/uci.sh
 . /lib/functions.sh
 
 LOG_FILE="/tmp/openclash.log"
 CONFIG_FILE="$5"
 
-config_load openclash
-
-config_get custom_fakeip_filter "config" "custom_fakeip_filter" 0
-config_get custom_name_policy "config" "custom_name_policy" 0
-config_get custom_host "config" "custom_host" 0
-config_get enable_custom_dns "config" "enable_custom_dns" 0
-config_get append_wan_dns "config" "append_wan_dns" 0
-config_get custom_fallback_filter "config" "custom_fallback_filter" 0
-config_get china_ip_route "config" "china_ip_route" 0
-config_get china_ip6_route "config" "china_ip6_route" 0
-config_get enable_redirect_dns "config" "enable_redirect_dns" 1
+custom_fakeip_filter=$(uci_get_config "custom_fakeip_filter" || echo 0)
+custom_name_policy=$(uci_get_config "custom_name_policy" || echo 0)
+custom_host=$(uci_get_config "custom_host" || echo 0)
+enable_custom_dns=$(uci_get_config "enable_custom_dns" || echo 0)
+append_wan_dns=$(uci_get_config "append_wan_dns" || echo 0)
+custom_fallback_filter=$(uci_get_config "custom_fallback_filter" || echo 0)
+china_ip_route=$(uci_get_config "china_ip_route" || echo 0)
+china_ip6_route=$(uci_get_config "china_ip6_route" || echo 0)
+enable_redirect_dns=$(uci_get_config "enable_redirect_dns" || echo 1)
 
 [ "$china_ip_route" -ne 0 ] && [ "$china_ip_route" -ne 1 ] && [ "$china_ip_route" -ne 2 ] && china_ip_route=0
 [ "$china_ip6_route" -ne 0 ] && [ "$china_ip6_route" -ne 1 ] && [ "$china_ip6_route" -ne 2 ] && china_ip6_route=0
@@ -79,7 +78,6 @@ yml_dns_custom()
 {
    if [ "$1" = 1 ] || [ "$3" = 1 ]; then
       sys_dns_append "$3" "$4"
-      config_load "openclash"
       config_foreach yml_dns_get "dns_servers" "$2"
    fi
 }
@@ -279,6 +277,7 @@ yml_dns_get()
    esac
 }
 
+config_load "openclash"
 config_foreach yml_auth_get "authentication"
 yml_dns_custom "$enable_custom_dns" "$5" "$append_wan_dns" "${16}"
 
@@ -400,7 +399,7 @@ threads << Thread.new do
 
       Value['lgbm-auto-update'] = true if lgbm_auto_update
       if lgbm_auto_update
-         Value['lgbm-custom-url'] = lgbm_custom_url.strip
+         Value['lgbm-url'] = lgbm_custom_url.strip
          Value['lgbm-update-interval'] = lgbm_update_interval.to_i
       end
 
@@ -625,7 +624,7 @@ end
 threads << Thread.new do
    begin
       if (auth_config = safe_load_yaml('/tmp/yaml_openclash_auth'))
-         (Value['authentication'] ||= []).concat(auth_config).uniq!
+         Value['authentication'] = auth_config
       end
    rescue Exception => e
       YAML.LOG('Error: Set authentication Failed,【%s】' % [e.message])
