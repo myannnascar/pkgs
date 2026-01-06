@@ -4,6 +4,7 @@ local sys = api.sys
 local datatypes = api.datatypes
 
 m = Map(appname)
+api.set_apply_on_parse(m)
 
 -- [[ Other Settings ]]--
 s = m:section(TypedSection, "global_other")
@@ -60,16 +61,67 @@ function s.remove(e, t)
 			m:set(s[".name"], "udp_node", "default")
 		end
 	end)
+	m.uci:foreach(appname, "nodes", function(s)
+		if s["preproxy_node"] == t then
+			m:del(s[".name"], "preproxy_node")
+			m:del(s[".name"], "chain_proxy")
+		end
+		if s["to_node"] == t then
+			m:del(s[".name"], "to_node")
+			m:del(s[".name"], "chain_proxy")
+		end
+		local list_name = s["urltest_node"] and "urltest_node" or (s["balancing_node"] and "balancing_node")
+		if list_name then
+			local nodes = m.uci:get_list(appname, s[".name"], list_name)
+			if nodes then
+				local changed = false
+				local new_nodes = {}
+				for _, node in ipairs(nodes) do
+					if node ~= t then
+						table.insert(new_nodes, node)
+					else
+						changed = true
+					end
+				end
+				if changed then
+					m.uci:set_list(appname, s[".name"], list_name, new_nodes)
+				end
+			end
+		end
+		if s["fallback_node"] == t then
+			m:del(s[".name"], "fallback_node")
+		end
+	end)
+	m.uci:foreach(appname, "subscribe_list", function(s)
+		if s["preproxy_node"] == t then
+			m:del(s[".name"], "preproxy_node")
+			m:del(s[".name"], "chain_proxy")
+		end
+		if s["to_node"] == t then
+			m:del(s[".name"], "to_node")
+			m:del(s[".name"], "chain_proxy")
+		end
+	end)
+	if (m:get(t, "add_mode") or "0") == "2" then
+		local add_from = m:get(t, "add_from") or ""
+		if add_from ~= "" then
+			m.uci:foreach(appname, "subscribe_list", function(s)
+				if s["remark"] == add_from then
+					m:del(s[".name"], "md5")
+				end
+			end)
+		end
+	end
 	TypedSection.remove(e, t)
-	local new_node = "nil"
+	local new_node = ""
 	local node0 = m:get("@nodes[0]") or nil
 	if node0 then
 		new_node = node0[".name"]
 	end
-	if (m:get("@global[0]", "tcp_node") or "nil") == t then
+	if (m:get("@global[0]", "tcp_node") or "") == t then
 		m:set('@global[0]', "tcp_node", new_node)
 	end
-	if (m:get("@global[0]", "udp_node") or "nil") == t then
+	if (m:get("@global[0]", "udp_node") or "") == t then
 		m:set('@global[0]', "udp_node", new_node)
 	end
 end
@@ -102,6 +154,8 @@ o.cfgvalue = function(t, n)
 		local protocol = m:get(n, "protocol")
 		if protocol == "_balancing" then
 			protocol = translate("Balancing")
+		elseif protocol == "_urltest" then
+			protocol = "URLTest"
 		elseif protocol == "_shunt" then
 			protocol = translate("Shunt")
 		elseif protocol == "vmess" then
@@ -118,6 +172,10 @@ o.cfgvalue = function(t, n)
 			protocol = "HY"
 		elseif protocol == "hysteria2" then
 			protocol = "HY2"
+		elseif protocol == "anytls" then
+			protocol = "AnyTLS"
+		elseif protocol == "ssh" then
+			protocol = "SSH"
 		else
 			protocol = protocol:gsub("^%l",string.upper)
 		end
@@ -125,9 +183,10 @@ o.cfgvalue = function(t, n)
 		type = type .. " " .. protocol
 	end
 	local address = m:get(n, "address") or ""
-	local port = m:get(n, "port") or ""
+	local port = m:get(n, "port") or m:get(n, "hysteria_hop") or m:get(n, "hysteria2_hop") or ""
 	str = str .. translate(type) .. "：" .. remarks
 	if address ~= "" and port ~= "" then
+		port = port:gsub(":", "-")
 		if show_node_info == "1" then
 			if datatypes.ip6addr(address) then
 				str = str .. string.format("（[%s]:%s）", address, port)

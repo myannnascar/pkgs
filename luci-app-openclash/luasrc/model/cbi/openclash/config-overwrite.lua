@@ -9,6 +9,31 @@ local uci = require "luci.model.uci".cursor()
 local json = require "luci.jsonc"
 local datatype = require "luci.cbi.datatypes"
 
+-- 优化 CBI UI（新版 LuCI 专用）
+local function optimize_cbi_ui()
+	luci.http.write([[
+		<script type="text/javascript">
+			// 修正上移、下移按钮名称
+			document.querySelectorAll("input.btn.cbi-button.cbi-button-up").forEach(function(btn) {
+				btn.value = "]] .. translate("Move up") .. [[";
+			});
+			document.querySelectorAll("input.btn.cbi-button.cbi-button-down").forEach(function(btn) {
+				btn.value = "]] .. translate("Move down") .. [[";
+			});
+			// 删除控件和说明之间的多余换行
+			document.querySelectorAll("div.cbi-value-description").forEach(function(descDiv) {
+				var prev = descDiv.previousSibling;
+				while (prev && prev.nodeType === Node.TEXT_NODE && prev.textContent.trim() === "") {
+					prev = prev.previousSibling;
+				}
+				if (prev && prev.nodeType === Node.ELEMENT_NODE && prev.tagName === "BR") {
+					prev.remove();
+				}
+			});
+		</script>
+	]])
+end
+
 font_green = [[<b style=color:green>]]
 font_red = [[<b style=color:red>]]
 font_off = [[</b>]]
@@ -17,23 +42,11 @@ bold_off = [[</strong>]]
 
 local op_mode = string.sub(luci.sys.exec('uci get openclash.config.operation_mode 2>/dev/null'),0,-2)
 if not op_mode then op_mode = "redir-host" end
-local lan_int_name = uci:get("openclash", "config", "lan_interface_name") or "0"
-
-local lan_ip
-if lan_int_name == "0" then
-	lan_ip = SYS.exec("uci -q get network.lan.ipaddr |awk -F '/' '{print $1}' 2>/dev/null |tr -d '\n'")
-else
-	lan_ip = SYS.exec(string.format("ip address show %s | grep -w 'inet' 2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n'", lan_int_name))
-end
-if not lan_ip or lan_ip == "" then
-	lan_ip = luci.sys.exec("ip address show $(uci -q -p /tmp/state get network.lan.device || uci -q -p /tmp/state get network.lan.device) | grep -w 'inet'  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n'")
-end
-if not lan_ip or lan_ip == "" then
-	lan_ip = luci.sys.exec("ip addr show 2>/dev/null | grep -w 'inet' | grep 'global' | grep 'brd' | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -n 1 | tr -d '\n'")
-end
+local lan_ip = fs.lanip()
 m = Map("openclash", translate("Overwrite Settings"))
 m.pageaction = false
-m.description = translate("Note: To restore the default configuration, try accessing:").." <a href='javascript:void(0)' onclick='javascript:restore_config(this)'>http://"..lan_ip.."/cgi-bin/luci/admin/services/openclash/restore</a>"
+m.description = translate("Note: To restore the default configuration, try accessing:").." <a href='javascript:void(0)' onclick='javascript:restore_config(this)'>http://"..lan_ip.."/cgi-bin/luci/admin/services/openclash/restore</a>"..
+"<br/>"..font_green..translate("For More Useful Meta Core Functions Go Wiki")..": "..font_off.."<a href='javascript:void(0)' onclick='javascript:return winOpen(\"https://wiki.metacubex.one/\")'>"..translate("https://wiki.metacubex.one/").."</a>"
 
 s = m:section(TypedSection, "openclash")
 s.anonymous = true
@@ -41,6 +54,7 @@ s.anonymous = true
 s:tab("settings", translate("General Settings"))
 s:tab("dns", "DNS "..translate("Settings"))
 s:tab("meta", translate("Meta Settings"))
+s:tab("smart", translate("Smart Settings"))
 s:tab("rules", translate("Rules Setting"))
 s:tab("developer", translate("Developer Settings"))
 
@@ -81,11 +95,10 @@ o:value("http://captive.apple.com/generate_204")
 o.default = "0"
 
 o = s:taboption("settings", Value, "github_address_mod", translate("Github Address Modify"))
-o.description = translate("Modify The Github Address In The Config And OpenClash With Proxy(CDN) To Prevent File Download Faild. Format Reference:").." ".."<a href='javascript:void(0)' onclick='javascript:return winOpen(\"https://mirror.ghproxy.com/\")'>https://mirror.ghproxy.com/</a>"
+o.description = translate("Modify The Github Address In The Config And OpenClash With Proxy(CDN) To Prevent File Download Faild. Format Reference:").." ".."<a href='javascript:void(0)' onclick='javascript:return winOpen(\"https://ghfast.top/\")'>https://ghfast.top/</a>"
 o:value("0", translate("Disable"))
 o:value("https://fastly.jsdelivr.net/")
 o:value("https://testingcf.jsdelivr.net/")
-o:value("https://raw.fastgit.org/")
 o:value("https://cdn.jsdelivr.net/")
 o.default = "0"
 
@@ -147,7 +160,7 @@ o = s:taboption("dns", Flag, "enable_custom_dns", font_red..bold_on..translate("
 o.description = font_red..bold_on..translate("Set OpenClash Upstream DNS Resolve Server")..bold_off..font_off
 o.default = 0
 
-o = s:taboption("dns", Flag, "enable_respect_rules", font_red..bold_on..translate("Respect Rules")..bold_off..font_off)
+o = s:taboption("dns", Flag, "enable_respect_rules", font_red..bold_on..translate("Respect Rules").."(respect-rules)"..bold_off..font_off)
 o.description = font_red..bold_on..translate("Whether or not The Connection to the DNS Server Follow the Rules in Config")..bold_off..font_off
 o.default = 0
 
@@ -292,16 +305,8 @@ o = s:taboption("meta", Flag, "enable_unified_delay", font_red..bold_on..transla
 o.description = font_red..bold_on..translate("Change The Delay Calculation Method To Remove Extra Delays Such as Handshaking")..bold_off..font_off
 o.default = "0"
 
-o = s:taboption("meta", ListValue, "keep_alive_interval", font_red..bold_on..translate("TCP Keep-alive Interval(s)")..bold_off..font_off)
-o.description = font_red..bold_on..translate("Change The TCP Keep-alive Interval, Selecting a Larger Value Avoids Abnormal Resource Consumption")..bold_off..font_off
-o:value("0", translate("Disable"))
-o:value("15")
-o:value("1800")
-o:value("3600")
-o.default = "0"
-
 o = s:taboption("meta", ListValue, "find_process_mode", translate("Enable Process Rule"))
-o.description = translate("Whether to Enable Process Rules, If You Are Not Sure, Please Choose off Which Useful in Router Environment")
+o.description = translate("Whether to Enable Process Rules, Only Works on Routerself, If You Are Not Sure, Please Choose off Which Useful in Router Environment, Depend on kmod-inet-diag")
 o:value("0", translate("Disable"))
 o:value("off", translate("OFF　"))
 o:value("always", translate("Always　"))
@@ -347,65 +352,90 @@ o.description = translate("Custom The Force and Skip Sniffing Doamin Lists")
 o.default = 0
 o:depends("enable_meta_sniffer", "1")
 
-sniffing_domain_force = s:taboption("meta", Value, "sniffing_domain_force")
-sniffing_domain_force:depends("enable_meta_sniffer_custom", "1")
-sniffing_domain_force.template = "cbi/tvalue"
-sniffing_domain_force.description = translate("Will Override Dns Queries If Domains in The List")
-sniffing_domain_force.rows = 20
-sniffing_domain_force.wrap = "off"
+sniffer_custom = s:taboption("meta", Value, "sniffer_custom")
+sniffer_custom:depends("enable_meta_sniffer_custom", "1")
+sniffer_custom.template = "cbi/tvalue"
+sniffer_custom.rows = 20
+sniffer_custom.wrap = "off"
 
-function sniffing_domain_force.cfgvalue(self, section)
-	return NXFS.readfile("/etc/openclash/custom/openclash_force_sniffing_domain.yaml") or ""
+function sniffer_custom.cfgvalue(self, section)
+	return NXFS.readfile("/etc/openclash/custom/openclash_custom_sniffer.yaml") or ""
 end
-function sniffing_domain_force.write(self, section, value)
+function sniffer_custom.write(self, section, value)
 	if value then
 		value = value:gsub("\r\n?", "\n")
-		local old_value = NXFS.readfile("/etc/openclash/custom/openclash_force_sniffing_domain.yaml")
+		local old_value = NXFS.readfile("/etc/openclash/custom/openclash_custom_sniffer.yaml")
 	  if value ~= old_value then
-			NXFS.writefile("/etc/openclash/custom/openclash_force_sniffing_domain.yaml", value)
+			NXFS.writefile("/etc/openclash/custom/openclash_custom_sniffer.yaml", value)
 		end
 	end
 end
 
-sniffing_port_filter = s:taboption("meta", Value, "sniffing_port_filter")
-sniffing_port_filter:depends("enable_meta_sniffer_custom", "1")
-sniffing_port_filter.template = "cbi/tvalue"
-sniffing_port_filter.description = translate("Will Only Sniffing If Ports in The List")
-sniffing_port_filter.rows = 20
-sniffing_port_filter.wrap = "off"
+-- Smart Settings
+o = s:taboption("smart", Flag, "auto_smart_switch", font_red..bold_on..translate("Smart Auto Switch")..bold_off..font_off)
+o.description = font_red..bold_on..translate("Auto Switch Url-test and Load-balance Group to Smart Group")..bold_off..font_off
+o.default = 0
 
-function sniffing_port_filter.cfgvalue(self, section)
-	return NXFS.readfile("/etc/openclash/custom/openclash_sniffing_ports_filter.yaml") or ""
-end
-function sniffing_port_filter.write(self, section, value)
-	if value then
-		value = value:gsub("\r\n?", "\n")
-		local old_value = NXFS.readfile("/etc/openclash/custom/openclash_sniffing_ports_filter.yaml")
-	  if value ~= old_value then
-			NXFS.writefile("/etc/openclash/custom/openclash_sniffing_ports_filter.yaml", value)
-		end
-	end
+o = s:taboption("smart", ListValue, "smart_strategy", translate("Node Select Strategy"))
+o:value("0", translate("Disable"))
+o:value("sticky-sessions", translate("Sticky-sessions"))
+o:value("round-robin", translate("Round-robin"))
+o.default = "0"
+o.description = translate("Before Node Data Collect Completely, The Default is Sticky-sessions")
+
+o = s:taboption("smart", Value, "smart_policy_priority", translate("Policy Priority"))
+o.default = ""
+o.placeholder = "Premium:0.9;SG:1.3"
+o.description = translate("Nodes Weight Priority, <1 Means Lower Priority, >1 Means Higher Priority, The Default is 1, Pattern Support Regex and String")
+
+o = s:taboption("smart", Flag, "smart_enable_lgbm", font_red..bold_on..translate("Enable LightGBM Model")..bold_off..font_off)
+o.description = font_red..bold_on..translate("Use LightGBM Model To Predict Weight")..bold_off..font_off
+o.default = 0
+
+o = s:taboption("smart", Flag, "smart_collect", translate("Colletct Training Data"))
+o.default = 0
+
+o = s:taboption("smart", Value, "smart_collect_size", translate("Data Colletct File Size (MB)"))
+o.default = 100
+o:depends("smart_collect", "1")
+o.description = translate("Limit The File Size of Collected Data, The Default is 100MB")
+
+o = s:taboption("smart", Value, "smart_collect_rate", translate("Data Colletct Rate"))
+o.default = 1
+o:depends("smart_collect", "1")
+o.description = translate("Data Acquisition Rate, Desirable Values are 0-1, The Default is 1")
+
+o = s:taboption("smart", Flag, "lgbm_auto_update", translate("Auto Update LightGBM Model"))
+o.default = 0
+
+o = s:taboption("smart", Value, "lgbm_update_interval", translate("Update Interval(hour)"))
+o.default = "72"
+o:depends("lgbm_auto_update", "1")
+
+o = s:taboption("smart", Value, "lgbm_custom_url")
+o.title = translate("Custom Model URL")
+o.rmempty = true
+o.description = translate("Custom LightGBM Model URL, Click Button Below To Refresh After Edit")
+o:value("https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin", translate("Light Version").." "..translate("(Default)"))
+o:value("https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model-middle.bin", translate("Middle Version"))
+o:value("https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model-large.bin", translate("Large Version"))
+o.default = "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin"
+o:depends("lgbm_auto_update", "1")
+
+o = s:taboption("smart", Button, translate("Model Update"))
+o.description = translate("Current Version:").." "..font_green..bold_on..translate(fs.get_resourse_mtime("/etc/openclash/Model.bin"))..bold_off..font_off
+o.title = translate("Update Model")
+o.inputtitle = translate("Check And Update")
+o.inputstyle = "reload"
+o.write = function()
+  m.uci:set("openclash", "config", "enable", 1)
+  m.uci:commit("openclash")
+  SYS.call("/usr/share/openclash/openclash_lgbm.sh >/dev/null 2>&1 &")
+  HTTP.redirect(DISP.build_url("admin", "services", "openclash"))
 end
 
-sniffing_domain_filter = s:taboption("meta", Value, "sniffing_domain_filter")
-sniffing_domain_filter:depends("enable_meta_sniffer_custom", "1")
-sniffing_domain_filter.template = "cbi/tvalue"
-sniffing_domain_filter.description = translate("Will Disable Sniffing If Domains(sni) in The List")
-sniffing_domain_filter.rows = 20
-sniffing_domain_filter.wrap = "off"
-
-function sniffing_domain_filter.cfgvalue(self, section)
-	return NXFS.readfile("/etc/openclash/custom/openclash_sniffing_domain_filter.yaml") or ""
-end
-function sniffing_domain_filter.write(self, section, value)
-	if value then
-		value = value:gsub("\r\n?", "\n")
-		local old_value = NXFS.readfile("/etc/openclash/custom/openclash_sniffing_domain_filter.yaml")
-	  if value ~= old_value then
-			NXFS.writefile("/etc/openclash/custom/openclash_sniffing_domain_filter.yaml", value)
-		end
-	end
-end
+o = s:taboption("smart", DummyValue, "flush_smart_cache", translate("Flush Smart Cache"))
+o.template = "openclash/flush_smart_cache"
 
 ---- Rules Settings
 o = s:taboption("rules", Flag, "rule_source", translate("Enable Other Rules"))
@@ -528,9 +558,14 @@ o:value("udp", translate("UDP"))
 o:value("tcp", translate("TCP"))
 o:value("tls", translate("TLS"))
 o:value("https", translate("HTTPS"))
-o:value("quic", translate("QUIC ")..translate("(Only Meta Core)"))
+o:value("quic", translate("QUIC"))
 o.default     = "udp"
 o.rempty      = false
+
+---- Disable-IPv6
+o = ds:option(Flag, "disable_ipv6", translate("Disable-IPv6"))
+o.rmempty     = false
+o.default     = o.disbled
 
 -- [[ Other Rules Manage ]]--
 ss = m:section(TypedSection, "other_rules", translate("Other Rules Edit")..translate("(Take Effect After Choose Above)"))
@@ -544,6 +579,12 @@ function ss.create(...)
 	if sid then
 		luci.http.redirect(ss.extedit % sid)
 		return
+	end
+end
+ss.render = function(self, ...)
+	Map.render(self, ...)
+	if type(optimize_cbi_ui) == "function" then
+		optimize_cbi_ui()
 	end
 end
 
@@ -580,6 +621,12 @@ s.addremove = true
 s.sortable = false
 s.template = "cbi/tblsection"
 s.rmempty = false
+s.render = function(self, ...)
+	Map.render(self, ...)
+	if type(optimize_cbi_ui) == "function" then
+		optimize_cbi_ui()
+	end
+end
 
 ---- enable flag
 o = s:option(Flag, "enabled", translate("Enable"))
@@ -626,5 +673,3 @@ m:append(Template("openclash/config_editor"))
 m:append(Template("openclash/toolbar_show"))
 
 return m
-
-
