@@ -1,0 +1,329 @@
+msgid ""
+msgstr ""
+"Language: zh_Hans\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:132
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:162
+msgid "Accent Color"
+msgstr "强调色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:133
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:163
+msgid "Accent Text Color"
+msgstr "强调色文本"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:320
+#: applications/luci-app-aurora-config/root/usr/share/luci/menu.d/luci-app-aurora.json:3
+msgid "Aurora Configuration"
+msgstr "Aurora 主题配置"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:75
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:103
+msgid "Background End Color"
+msgstr "背景结束色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:70
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:98
+msgid "Background Mid Color"
+msgstr "背景中间色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:65
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:93
+msgid "Background Start Color"
+msgstr "背景起始色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:396
+msgid "Boxed Dropdown"
+msgstr "盒式下拉菜单"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:324
+msgid "Color"
+msgstr "颜色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:42
+msgid "Color Picker Helper"
+msgstr "颜色选择器助手"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:338
+msgid "Dark Mode"
+msgstr "深色模式"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:183
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:250
+msgid "Default Border Color"
+msgstr "默认边框色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:178
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:245
+msgid "Default Color"
+msgstr "默认色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:188
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:255
+msgid "Default End Color"
+msgstr "默认结束色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:187
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:254
+msgid "Default Mid Color"
+msgstr "默认中间色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:185
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:252
+msgid "Default Shadow Color"
+msgstr "默认阴影色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:186
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:253
+msgid "Default Start Color"
+msgstr "默认起始色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:179
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:246
+msgid "Default Text Color"
+msgstr "默认文本色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:134
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:164
+msgid "Destructive Color"
+msgstr "破坏性色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:143
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:173
+msgid "Destructive Hover Color"
+msgstr "破坏性悬停色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:138
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:168
+msgid "Destructive Text Color"
+msgstr "破坏性文本色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:231
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:303
+msgid "Error Border Color"
+msgstr "错误边框色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:226
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:301
+msgid "Error Color"
+msgstr "错误色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:241
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:308
+msgid "Error End Color"
+msgstr "错误结束色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:240
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:307
+msgid "Error Mid Color"
+msgstr "错误中间色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:233
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:304
+msgid "Error Ring Color"
+msgstr "错误环色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:237
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:305
+msgid "Error Shadow Color"
+msgstr "错误阴影色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:239
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:306
+msgid "Error Start Color"
+msgstr "错误起始色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:227
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:302
+msgid "Error Text Color"
+msgstr "错误文本色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:342
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:360
+msgid "Gradient Colors"
+msgstr "渐变色"
+
+#: applications/luci-app-aurora-config/root/usr/share/rpcd/acl.d/luci-app-aurora.json:3
+msgid "Grant access to Aurora theme configuration"
+msgstr "授予 Aurora 主题配置访问权限"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:206
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:277
+msgid "Info Border Color"
+msgstr "信息边框色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:204
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:275
+msgid "Info Color"
+msgstr "信息色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:210
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:281
+msgid "Info End Color"
+msgstr "信息结束色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:209
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:280
+msgid "Info Mid Color"
+msgstr "信息中间色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:207
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:278
+msgid "Info Shadow Color"
+msgstr "信息阴影色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:208
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:279
+msgid "Info Start Color"
+msgstr "信息起始色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:205
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:276
+msgid "Info Text Color"
+msgstr "信息文本色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:388
+msgid "Layout"
+msgstr "布局"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:337
+msgid "Light Mode"
+msgstr "浅色模式"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:395
+msgid "Mega Menu"
+msgstr "超级菜单"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:129
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:159
+msgid "Muted Color"
+msgstr "柔和色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:131
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:161
+msgid "Muted Hover Color"
+msgstr "柔和悬停色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:130
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:160
+msgid "Muted Text Color"
+msgstr "柔和文本色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:393
+msgid "Navigation Submenu Type"
+msgstr "导航子菜单类型"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:118
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:148
+msgid "Primary Color"
+msgstr "主色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:127
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:157
+msgid "Primary Hover Color"
+msgstr "主色悬停"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:122
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:152
+msgid "Primary Text Color"
+msgstr "主色文本"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:85
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:113
+msgid "Progress End Color"
+msgstr "进度结束色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:80
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:108
+msgid "Progress Start Color"
+msgstr "进度起始色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:348
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:366
+msgid "Semantic Colors"
+msgstr "语义颜色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:400
+msgid "Spacing"
+msgstr "间距"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:354
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:372
+msgid "Status Colors"
+msgstr "状态颜色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:325
+msgid "Structure"
+msgstr "结构"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:194
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:261
+msgid "Success Border Color"
+msgstr "成功边框色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:189
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:256
+msgid "Success Color"
+msgstr "成功色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:203
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:274
+msgid "Success End Color"
+msgstr "成功结束色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:202
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:273
+msgid "Success Mid Color"
+msgstr "成功中间色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:199
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:266
+msgid "Success Shadow Color"
+msgstr "成功阴影色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:201
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:271
+msgid "Success Start Color"
+msgstr "成功起始色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:190
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:257
+msgid "Success Text Color"
+msgstr "成功文本色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:216
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:287
+msgid "Warning Border Color"
+msgstr "警告边框色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:211
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:282
+msgid "Warning Color"
+msgstr "警告色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:225
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:300
+msgid "Warning End Color"
+msgstr "警告结束色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:224
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:299
+msgid "Warning Mid Color"
+msgstr "警告中间色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:221
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:292
+msgid "Warning Shadow Color"
+msgstr "警告阴影色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:223
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:297
+msgid "Warning Start Color"
+msgstr "警告起始色"
+
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:212
+#: applications/luci-app-aurora-config/htdocs/luci-static/resources/view/aurora/theme.js:283
+msgid "Warning Text Color"
+msgstr "警告文本色"
