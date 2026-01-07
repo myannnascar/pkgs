@@ -8,6 +8,8 @@ if not arg[1] or not m:get(arg[1]) then
 	luci.http.redirect(api.url("acl"))
 end
 
+m:append(Template(appname .. "/cbi/nodes_listvalue_com"))
+
 local sys = api.sys
 
 local port_validate = function(self, value, t)
@@ -200,6 +202,8 @@ if GLOBAL_ENABLED == "1" and NODE then
 	o:value("", translate("Use global config") .. "(" .. api.get_node_name(NODE) .. ")")
 end
 o:depends({ _hide_node_option = "1",  ['!reverse'] = true })
+o.template = appname .. "/cbi/nodes_listvalue"
+o.group = {}
 
 o = s:option(DummyValue, "_hide_dns_option", "")
 o.template = "passwall2/cbi/hidevalue"
@@ -219,7 +223,7 @@ local TCP_REDIR_PORTS = m:get("@global_forwarding[0]", "tcp_redir_ports")
 o = s:option(Value, "tcp_redir_ports", translate("TCP Redir Ports"))
 o:value("", translate("Use global config") .. "(" .. TCP_REDIR_PORTS .. ")")
 o:value("1:65535", translate("All"))
-o:value("22,25,53,143,465,587,853,993,995,80,443", translate("Common Use"))
+o:value("22,25,53,80,143,443,465,587,853,873,993,995,5222,8080,8443,9418", translate("Common Use"))
 o:value("80,443", "80,443")
 o.validate = port_validate
 o:depends({ _hide_node_option = "1",  ['!reverse'] = true })
@@ -333,8 +337,11 @@ o.remove = function(self, section)
 	end
 end
 
+local o_node = s.fields["node"]
+
 for k, v in pairs(nodes_table) do
-	s.fields["node"]:value(v.id, v["remark"])
+	o_node:value(v.id, v["remark"])
+	o_node.group[#o_node.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	if v.type == "Xray" then
 		s.fields["_xray_node"]:depends({ node = v.id })
 	end

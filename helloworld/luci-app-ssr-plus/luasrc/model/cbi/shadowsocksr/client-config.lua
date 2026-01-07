@@ -773,7 +773,7 @@ o.rmempty = true
 -- AlterId
 o = s:option(Value, "alter_id", translate("AlterId"))
 o.datatype = "port"
-o.default = 16
+o.default = 0
 o.rmempty = true
 o:depends({type = "v2ray", v2ray_protocol = "vmess"})
 
@@ -789,8 +789,12 @@ o:depends({type = "v2ray", v2ray_protocol = "vless"})
 o = s:option(Value, "vless_encryption", translate("VLESS Encryption"))
 o.rmempty = true
 o.default = "none"
-o:value("none") 
+o.placeholder = "none"
 o:depends({type = "v2ray", v2ray_protocol = "vless"})
+o.validate = function(self, value)
+	value = value and value:match("^%s*(.-)%s*$") or value
+	return value ~= "" and value or "none"
+end
 
 -- 加密方式
 o = s:option(ListValue, "security", translate("Encrypt Method"))
@@ -1180,21 +1184,8 @@ if is_finded("xray") then
 		end
 	end
 	o.rmempty = true
-	o:depends({type = "v2ray", v2ray_protocol = "vless", transport = "raw", tls = true})
-	o:depends({type = "v2ray", v2ray_protocol = "vless", transport = "raw", reality = true})
-
-	o = s:option(ListValue, "xhttp_tls_flow", translate("Flow"))
-	for _, v in ipairs(tls_flows) do
-		if v == "none" then
-		   o.default = "none"
-		   o:value("none", translate("none"))
-		else
-		   o:value("xtls-rprx-vision", translate("xtls-rprx-vision"))
-		end
-	end
-	o.rmempty = true
-	o:depends({type = "v2ray", v2ray_protocol = "vless", transport = "xhttp", tls = true})
-	o:depends({type = "v2ray", v2ray_protocol = "vless", transport = "xhttp", reality = true})
+	o:depends({type = "v2ray", v2ray_protocol = "vless", transport = "raw"})
+	o:depends({type = "v2ray", v2ray_protocol = "vless", transport = "xhttp"})
 
 	-- [[ uTLS ]]--
 	o = s:option(ListValue, "fingerprint", translate("Finger Print"))
@@ -1285,15 +1276,30 @@ o = s:option(ListValue, "tuic_alpn", translate("TUIC ALPN"))
 o.default = ""
 o:value("", translate("Default"))
 o:value("h3")
+o:value("h2")
+o:value("h3,h2")
+o:value("http/1.1")
+o:value("h2,http/1.1")
+o:value("h3,h2,http/1.1")
 o:value("spdy/3.1")
 o:value("h3,spdy/3.1")
 o:depends("type", "tuic")
+
+-- IP STACK PREFERENCE
+o = s:option(ListValue, "ipstack_prefer", translate("IP Stack Preference"))
+o.default = ""
+o:value("", translate("Default"))
+o:value("v4first")
+o:value("v6first")
+o:depends("tuic_dual_stack", true)
 
 -- [[ allowInsecure ]]--
 o = s:option(Flag, "insecure", translate("allowInsecure"))
 o.rmempty = false
 o:depends("tls", true)
 o:depends("type", "hysteria2")
+o:depends("type", "tuic")
+o:depends({type = "v2ray", v2ray_protocol = "vless", reality = true})
 o.description = translate("If true, allowss insecure connection at TLS client, e.g., TLS server uses unverifiable certificates.")
 
 -- [[ Hysteria2 TLS pinSHA256 ]] --
@@ -1375,6 +1381,12 @@ o:depends({type = "v2ray", v2ray_protocol = "trojan"})
 o:depends({type = "v2ray", v2ray_protocol = "shadowsocks"})
 o:depends({type = "v2ray", v2ray_protocol = "socks"})
 o:depends({type = "v2ray", v2ray_protocol = "http"})
+
+-- [[ TESTPRE ]]--
+o = s:option(Value, "preconns", translate("Pre-connections"), translate("Number of early established connections to reduce latency."))
+o.datatype = "uinteger"
+o.placeholder = 0
+o:depends({type = "v2ray", v2ray_protocol = "vless"})
 
 -- [[ custom_tcpcongestion 连接服务器节点的 TCP 拥塞控制算法 ]]--
 o = s:option(ListValue, "custom_tcpcongestion", translate("custom_tcpcongestion"))

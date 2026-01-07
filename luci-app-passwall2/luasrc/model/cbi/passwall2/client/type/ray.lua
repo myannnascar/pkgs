@@ -64,19 +64,22 @@ for k, e in ipairs(api.get_valid_nodes()) do
 			id = e[".name"],
 			remark = e["remark"],
 			type = e["type"],
-			chain_proxy = e["chain_proxy"]
+			chain_proxy = e["chain_proxy"],
+			group = e["group"]
 		}
 	end
 	if e.protocol == "_balancing" then
 		balancers_table[#balancers_table + 1] = {
 			id = e[".name"],
-			remark = e["remark"]
+			remark = e["remark"],
+			group = e["group"]
 		}
 		if e[".name"] ~= arg[1] then
 			fallback_table[#fallback_table + 1] = {
 				id = e[".name"],
 				remark = e["remark"],
-				fallback = e["fallback_node"]
+				fallback = e["fallback_node"],
+				group = e["group"]
 			}
 		else
 			is_balancer = true
@@ -85,7 +88,8 @@ for k, e in ipairs(api.get_valid_nodes()) do
 	if e.protocol == "_iface" then
 		iface_table[#iface_table + 1] = {
 			id = e[".name"],
-			remark = e["remark"]
+			remark = e["remark"],
+			group = e["group"]
 		}
 	end
 end
@@ -95,34 +99,49 @@ m.uci:foreach(appname, "socks", function(s)
 	if s.enabled == "1" and s.node then
 		socks_list[#socks_list + 1] = {
 			id = "Socks_" .. s[".name"],
-			remark = translate("Socks Config") .. " [" .. s.port .. "端口]"
+			remark = translate("Socks Config") .. " [" .. s.port .. translate("Port") .. "]",
+			group = "Socks"
 		}
 	end
 end)
 
--- 负载均衡列表
-o = s:option(DynamicList, _n("balancing_node"), translate("Load balancing node list"), translate("Load balancing node list, <a target='_blank' href='https://xtls.github.io/config/routing.html#balancerobject'>document</a>"))
+-- Load balancing node list
+o = s:option(MultiValue, _n("balancing_node"), translate("Load balancing node list"), translate("Load balancing node list, <a target='_blank' href='https://xtls.github.io/config/routing.html#balancerobject'>document</a>"))
 o:depends({ [_n("protocol")] = "_balancing" })
-local valid_ids = {}
-for k, v in pairs(nodes_table) do
+o.widget = "checkbox"
+o.template = appname .. "/cbi/nodes_multivalue"
+o.group = {}
+for k, v in pairs(socks_list) do
 	o:value(v.id, v.remark)
-	valid_ids[v.id] = true
+	o.group[#o.group+1] = v.group or ""
 end
--- 去重并禁止自定义非法输入
+for i, v in pairs(nodes_table) do
+	o:value(v.id, v.remark)
+	o.group[#o.group+1] = v.group or ""
+end
+-- Reading the old DynamicList
+function o.cfgvalue(self, section)
+	return m.uci:get_list(appname, section, "balancing_node") or {}
+end
+-- Write-and-hold DynamicList
 function o.custom_write(self, section, value)
-	local result = {}
-	if type(value) == "table" then
-		local seen = {}
-		for _, v in ipairs(value) do
-			if v and not seen[v] and valid_ids[v] then
-				table.insert(result, v)
-				seen[v] = true
-			end
-		end
-	else
-		result = { value }
+	local old = m.uci:get_list(appname, section, "balancing_node") or {}
+	local new, set = {}, {}
+	for v in value:gmatch("%S+") do
+		new[#new + 1] = v
+		set[v] = 1
 	end
-	m.uci:set_list(appname, section, "balancing_node", result)
+	for _, v in ipairs(old) do
+		if not set[v] then
+			m.uci:set_list(appname, section, "balancing_node", new)
+			return
+		end
+		set[v] = nil
+	end
+	for _ in pairs(set) do
+		m.uci:set_list(appname, section, "balancing_node", new)
+		return
+	end
 end
 
 o = s:option(ListValue, _n("balancingStrategy"), translate("Balancing Strategy"))
@@ -137,6 +156,8 @@ o.default = "random"
 o = s:option(ListValue, _n("fallback_node"), translate("Fallback Node"))
 o:value("", translate("Close(Not use)"))
 o:depends({ [_n("protocol")] = "_balancing" })
+o.template = appname .. "/cbi/nodes_listvalue"
+o.group = {""}
 local function check_fallback_chain(fb)
 	for k, v in pairs(fallback_table) do
 		if v.fallback == fb then
@@ -145,14 +166,23 @@ local function check_fallback_chain(fb)
 		end
 	end
 end
--- 检查fallback链，去掉会形成闭环的balancer节点
+-- Check the fallback chain and remove the balancer node that would form a closed loop.
 if is_balancer then
 	check_fallback_chain(arg[1])
 end
-for k, v in pairs(fallback_table) do o:value(v.id, v.remark) end
-for k, v in pairs(nodes_table) do o:value(v.id, v.remark) end
+for k, v in pairs(socks_list) do
+	o:value(v.id, v.remark)
+	o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
+end
+for k, v in pairs(fallback_table) do
+	o:value(v.id, v.remark)
+	o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
+end
+for k, v in pairs(nodes_table) do
+	o:value(v.id, v.remark)
+	o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
+end
 
--- 探测地址
 o = s:option(Flag, _n("useCustomProbeUrl"), translate("Use Custom Probe URL"), translate("By default the built-in probe URL will be used, enable this option to use a custom probe URL."))
 o:depends({ [_n("protocol")] = "_balancing" })
 
@@ -167,7 +197,6 @@ o:value("https://connectivitycheck.platform.hicloud.com/generate_204", "HiCloud 
 o.default = "https://www.google.com/generate_204"
 o.description = translate("The URL used to detect the connection status.")
 
--- 探测间隔
 o = s:option(Value, _n("probeInterval"), translate("Probe Interval"))
 o:depends({ [_n("protocol")] = "_balancing" })
 o.default = "1m"
@@ -184,24 +213,30 @@ o.placeholder = "2"
 o.description = translate("The load balancer selects the optimal number of nodes, and traffic is randomly distributed among them.")
 
 
--- [[ 分流模块 ]]
+-- [[ Shunt Start ]]
 if #nodes_table > 0 then
 	o = s:option(Flag, _n("preproxy_enabled"), translate("Preproxy"))
 	o:depends({ [_n("protocol")] = "_shunt" })
 
 	o = s:option(ListValue, _n("main_node"), string.format('<a style="color:red">%s</a>', translate("Preproxy Node")), translate("Set the node to be used as a pre-proxy. Each rule (including <code>Default</code>) has a separate switch that controls whether this rule uses the pre-proxy or not."))
 	o:depends({ [_n("protocol")] = "_shunt", [_n("preproxy_enabled")] = true })
+	o.template = appname .. "/cbi/nodes_listvalue"
+	o.group = {}
 	for k, v in pairs(socks_list) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 	for k, v in pairs(balancers_table) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 	for k, v in pairs(iface_table) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 	for k, v in pairs(nodes_table) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 	if #o.keylist > 0 then
 		o.default = o.keylist[1]
@@ -215,22 +250,28 @@ m.uci:foreach(appname, "shunt_rules", function(e)
 		o:value("_direct", translate("Direct Connection"))
 		o:value("_blackhole", translate("Blackhole"))
 		o:depends({ [_n("protocol")] = "_shunt" })
+		o.template = appname .. "/cbi/nodes_listvalue"
+		o.group = {"","","",""}
 
 		if #nodes_table > 0 then
 			for k, v in pairs(socks_list) do
 				o:value(v.id, v.remark)
+				o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 			end
 			for k, v in pairs(balancers_table) do
 				o:value(v.id, v.remark)
+				o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 			end
 			for k, v in pairs(iface_table) do
 				o:value(v.id, v.remark)
+				o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 			end
 			local pt = s:option(ListValue, _n(e[".name"] .. "_proxy_tag"), string.format('* <a style="color:red">%s</a>', e.remarks .. " " .. translate("Preproxy")))
 			pt:value("", translate("Close"))
 			pt:value("main", translate("Preproxy Node"))
 			for k, v in pairs(nodes_table) do
 				o:value(v.id, v.remark)
+				o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 				pt:depends({ [_n("protocol")] = "_shunt", [_n("preproxy_enabled")] = true, [_n(e[".name"])] = v.id })
 			end
 		end
@@ -249,22 +290,28 @@ local o = s:option(ListValue, _n("default_node"), string.format('* <a style="col
 o:depends({ [_n("protocol")] = "_shunt" })
 o:value("_direct", translate("Direct Connection"))
 o:value("_blackhole", translate("Blackhole"))
+o.template = appname .. "/cbi/nodes_listvalue"
+o.group = {"",""}
 
 if #nodes_table > 0 then
 	for k, v in pairs(socks_list) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 	for k, v in pairs(balancers_table) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 	for k, v in pairs(iface_table) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 	local dpt = s:option(ListValue, _n("default_proxy_tag"), string.format('* <a style="color:red">%s</a>', translate("Default Preproxy")), translate("When using, localhost will connect this node first and then use this node to connect the default node."))
 	dpt:value("", translate("Close"))
 	dpt:value("main", translate("Preproxy Node"))
 	for k, v in pairs(nodes_table) do
 		o:value(v.id, v.remark)
+		o.group[#o.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 		dpt:depends({ [_n("protocol")] = "_shunt", [_n("preproxy_enabled")] = true, [_n("default_node")] = v.id })
 	end
 end
@@ -285,7 +332,7 @@ o:value("hybrid")
 o:value("linear")
 o:depends({ [_n("protocol")] = "_shunt" })
 
--- [[ 分流模块 End ]]
+-- [[ Shunt End ]]
 
 o = s:option(Value, _n("address"), translate("Address (Support Domain Name)"))
 
@@ -321,6 +368,10 @@ o = s:option(Value, _n("encryption"), translate("Encrypt Method") .. " (encrypti
 o.default = "none"
 o.placeholder = "none"
 o:depends({ [_n("protocol")] = "vless" })
+o.validate = function(self, value)
+	value = api.trim(value)
+	return (value == "" and "none" or value)
+end
 
 o = s:option(ListValue, _n("ss_method"), translate("Encrypt Method"))
 o.rewrite_option = "method"
@@ -345,8 +396,7 @@ o = s:option(ListValue, _n("flow"), translate("flow"))
 o.default = ""
 o:value("", translate("Disable"))
 o:value("xtls-rprx-vision")
-o:depends({ [_n("protocol")] = "vless", [_n("tls")] = true, [_n("transport")] = "raw" })
-o:depends({ [_n("protocol")] = "vless", [_n("tls")] = true, [_n("transport")] = "xhttp" })
+o:depends({ [_n("protocol")] = "vless" })
 
 o = s:option(Flag, _n("tls"), translate("TLS"))
 o.default = 0
@@ -388,6 +438,9 @@ o = s:option(Flag, _n("tls_allowInsecure"), translate("allowInsecure"), translat
 o.default = "0"
 o:depends({ [_n("tls")] = true, [_n("reality")] = false })
 
+o = s:option(Value, _n("tls_chain_fingerprint"), translate("TLS Chain Fingerprint (SHA256)"), translate("Once set, connects only when the server’s chain fingerprint matches."))
+o:depends({ [_n("tls")] = true, [_n("reality")] = false })
+
 o = s:option(Flag, _n("ech"), translate("ECH"))
 o.default = "0"
 o:depends({ [_n("tls")] = true, [_n("flow")] = "", [_n("reality")] = false })
@@ -408,7 +461,7 @@ o:value("half")
 o:value("full")
 o:depends({ [_n("ech")] = true })
 
--- [[ REALITY部分 ]] --
+-- [[ REALITY ]] --
 o = s:option(Value, _n("reality_publicKey"), translate("Public Key"))
 o:depends({ [_n("tls")] = true, [_n("reality")] = true })
 
@@ -489,25 +542,20 @@ o = s:option(Value, _n("wireguard_keepAlive"), translate("Keep Alive"))
 o.default = "0"
 o:depends({ [_n("protocol")] = "wireguard" })
 
--- [[ RAW部分 ]]--
-
--- TCP伪装
+-- [[ RAW ]]--
 o = s:option(ListValue, _n("tcp_guise"), translate("Camouflage Type"))
 o:value("none", "none")
 o:value("http", "http")
 o:depends({ [_n("transport")] = "raw" })
 
--- HTTP域名
 o = s:option(DynamicList, _n("tcp_guise_http_host"), translate("HTTP Host"))
 o:depends({ [_n("tcp_guise")] = "http" })
 
--- HTTP路径
 o = s:option(DynamicList, _n("tcp_guise_http_path"), translate("HTTP Path"))
 o.placeholder = "/"
 o:depends({ [_n("tcp_guise")] = "http" })
 
--- [[ mKCP部分 ]]--
-
+-- [[ mKCP ]]--
 o = s:option(ListValue, _n("mkcp_guise"), translate("Camouflage Type"), translate('<br />none: default, no masquerade, data sent is packets with no characteristics.<br />srtp: disguised as an SRTP packet, it will be recognized as video call data (such as FaceTime).<br />utp: packets disguised as uTP will be recognized as bittorrent downloaded data.<br />wechat-video: packets disguised as WeChat video calls.<br />dtls: disguised as DTLS 1.2 packet.<br />wireguard: disguised as a WireGuard packet. (not really WireGuard protocol)<br />dns: Disguising traffic as DNS requests.'))
 for a, t in ipairs(header_type_list) do o:value(t) end
 o:depends({ [_n("transport")] = "mkcp" })
@@ -545,7 +593,7 @@ o:depends({ [_n("transport")] = "mkcp" })
 o = s:option(Value, _n("mkcp_seed"), translate("KCP Seed"))
 o:depends({ [_n("transport")] = "mkcp" })
 
--- [[ WebSocket部分 ]]--
+-- [[ WebSocket  ]]--
 o = s:option(Value, _n("ws_host"), translate("WebSocket Host"))
 o:depends({ [_n("transport")] = "ws" })
 
@@ -557,7 +605,7 @@ o = s:option(Value, _n("ws_heartbeatPeriod"), translate("HeartbeatPeriod(second)
 o.datatype = "integer"
 o:depends({ [_n("transport")] = "ws" })
 
--- [[ gRPC部分 ]]--
+-- [[ gRPC  ]]--
 o = s:option(Value, _n("grpc_serviceName"), "ServiceName")
 o:depends({ [_n("transport")] = "grpc" })
 
@@ -585,7 +633,7 @@ o = s:option(Value, _n("grpc_initial_windows_size"), translate("Initial Windows 
 o.default = "0"
 o:depends({ [_n("transport")] = "grpc" })
 
--- [[ HttpUpgrade部分 ]]--
+-- [[ HttpUpgrade ]]--
 o = s:option(Value, _n("httpupgrade_host"), translate("HttpUpgrade Host"))
 o:depends({ [_n("transport")] = "httpupgrade" })
 
@@ -593,7 +641,7 @@ o = s:option(Value, _n("httpupgrade_path"), translate("HttpUpgrade Path"))
 o.placeholder = "/"
 o:depends({ [_n("transport")] = "httpupgrade" })
 
--- [[ XHTTP部分 ]]--
+-- [[ XHTTP ]]--
 o = s:option(ListValue, _n("xhttp_mode"), "XHTTP " .. translate("Mode"))
 o:depends({ [_n("transport")] = "xhttp" })
 o.default = "auto"
@@ -617,8 +665,14 @@ o = s:option(TextValue, _n("xhttp_extra"), " ", translate("An XHttpObject in JSO
 o:depends({ [_n("use_xhttp_extra")] = true })
 o.rows = 15
 o.wrap = "off"
+o.custom_cfgvalue = function(self, section, value)
+	local raw = m:get(section, "xhttp_extra")
+	if raw then
+		return api.base64Decode(raw)
+	end
+end
 o.custom_write = function(self, section, value)
-	m:set(section, self.option:sub(1 + #option_prefix), value)
+	m:set(section, "xhttp_extra", api.base64Encode(value))
 	local success, data = pcall(jsonc.parse, value)
 	if success and data then
 		local address = (data.extra and data.extra.downloadSettings and data.extra.downloadSettings.address)
@@ -641,9 +695,16 @@ o.validate = function(self, value)
 	return value
 end
 o.custom_remove = function(self, section, value)
-	m:del(section, self.option:sub(1 + #option_prefix))
+	m:del(section, "xhttp_extra")
 	m:del(section, "download_address")
 end
+
+-- [[ User-Agent ]]--
+o = s:option(Value, _n("user_agent"), translate("User-Agent"))
+o:depends({ [_n("tcp_guise")] = "http" })
+o:depends({ [_n("transport")] = "ws" })
+o:depends({ [_n("transport")] = "httpupgrade" })
+o:depends({ [_n("transport")] = "xhttp" })
 
 -- [[ Mux.Cool ]]--
 o = s:option(Flag, _n("mux"), "Mux", translate("Enable Mux.Cool"))
@@ -665,9 +726,22 @@ o = s:option(Value, _n("xudp_concurrency"), translate("XUDP Mux concurrency"))
 o.default = 8
 o:depends({ [_n("mux")] = true })
 
+o = s:option(Flag, _n("tcp_fast_open"), "TCP " .. translate("Fast Open"))
+o.default = 0
+o:depends({ [_n("protocol")] = "vmess" })
+o:depends({ [_n("protocol")] = "vless" })
+o:depends({ [_n("protocol")] = "socks" })
+o:depends({ [_n("protocol")] = "shadowsocks" })
+o:depends({ [_n("protocol")] = "trojan" })
+
 --[[tcpMptcp]]
 o = s:option(Flag, _n("tcpMptcp"), "tcpMptcp", translate("Enable Multipath TCP, need to be enabled in both server and client configuration."))
 o.default = 0
+
+o = s:option(Value, _n("preconns"), translate("Pre-connections"), translate("Number of early established connections to reduce latency."))
+o.datatype = "uinteger"
+o.placeholder = 0
+o:depends({ [_n("protocol")] = "vless" })
 
 o = s:option(ListValue, _n("chain_proxy"), translate("Chain Proxy"))
 o:value("", translate("Close(Not use)"))
@@ -679,16 +753,22 @@ for i, v in ipairs(s.fields[_n("protocol")].keylist) do
 	end
 end
 
-o = s:option(ListValue, _n("preproxy_node"), translate("Preproxy Node"), translate("Only support a layer of proxy."))
-o:depends({ [_n("chain_proxy")] = "1" })
+o1 = s:option(ListValue, _n("preproxy_node"), translate("Preproxy Node"), translate("Only support a layer of proxy."))
+o1:depends({ [_n("chain_proxy")] = "1" })
+o1.template = appname .. "/cbi/nodes_listvalue"
+o1.group = {}
 
-o = s:option(ListValue, _n("to_node"), translate("Landing Node"), translate("Only support a layer of proxy."))
-o:depends({ [_n("chain_proxy")] = "2" })
+o2 = s:option(ListValue, _n("to_node"), translate("Landing Node"), translate("Only support a layer of proxy."))
+o2:depends({ [_n("chain_proxy")] = "2" })
+o2.template = appname .. "/cbi/nodes_listvalue"
+o2.group = {}
 
 for k, v in pairs(nodes_table) do
 	if v.type == "Xray" and v.id ~= arg[1] and (not v.chain_proxy or v.chain_proxy == "") then
-		s.fields[_n("preproxy_node")]:value(v.id, v.remark)
-		s.fields[_n("to_node")]:value(v.id, v.remark)
+		o1:value(v.id, v.remark)
+		o1.group[#o1.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
+		o2:value(v.id, v.remark)
+		o2.group[#o2.group+1] = (v.group and v.group ~= "") and v.group or translate("default")
 	end
 end
 

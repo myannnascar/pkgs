@@ -46,7 +46,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 			local relay_port = node.port
 			new_port = get_new_port()
 			local config_file = string.format("%s_%s_%s.json", flag, tag, new_port)
-			if tag and node_id and tag ~= node_id then
+			if tag and node_id and not tag:find(node_id) then
 				config_file = string.format("%s_%s_%s_%s.json", flag, tag, node_id, new_port)
 			end
 			if run_socks_instance then
@@ -97,11 +97,10 @@ function gen_outbound(flag, node, tag, proxy_table)
 			end
 			tls = {
 				enabled = true,
-				disable_sni = (node.tls_disable_sni == "1") and true or false, --不要在 ClientHello 中发送服务器名称.
-				server_name = node.tls_serverName, --用于验证返回证书上的主机名，除非设置不安全。它还包含在 ClientHello 中以支持虚拟主机，除非它是 IP 地址。
-				insecure = (node.tls_allowInsecure == "1") and true or false, --接受任何服务器证书。
-				alpn = alpn, --支持的应用层协议协商列表，按优先顺序排列。如果两个对等点都支持 ALPN，则选择的协议将是此列表中的一个，如果没有相互支持的协议则连接将失败。
-				--min_version = "1.2",
+				disable_sni = (node.tls_disable_sni == "1") and true or false, -- Do not send the server name in ClientHello.
+				server_name = node.tls_serverName, -- Used to verify the hostname on the returned certificate, unless the settings are insecure. It is also included in ClientHello to support virtual hosts, unless it is an IP address.
+				insecure = (node.tls_allowInsecure == "1") and true or false, -- Accepts any server certificate.
+				alpn = alpn, -- A list of supported application layer protocols, arranged in order of priority. If both peers support ALPN, the protocol selected will be one of these protocols; otherwise, the connection will fail.
 				--max_version = "1.3",
 				fragment = fragment,
 				record_fragment = record_fragment,
@@ -142,15 +141,21 @@ function gen_outbound(flag, node, tag, proxy_table)
 
 		local v2ray_transport = nil
 
-		if node.transport == "tcp" and node.tcp_guise == "http" and (node.tcp_guise_http_host or "") ~= "" then  --模拟xray raw(tcp)传输
+		if node.transport == "tcp" and node.tcp_guise == "http" and (node.tcp_guise_http_host or "") ~= "" then  -- Simulate X-ray Raw (TCP) transmission
 			v2ray_transport = {
 				type = "http",
 				host = node.tcp_guise_http_host,
-				path = (node.tcp_guise_http_path and node.tcp_guise_http_path[1]) or "/",
+				path = node.tcp_guise_http_path and (function()
+						local first = node.tcp_guise_http_path[1]
+						return (first == "" or not first) and "/" or first
+					end)() or "/",
+				headers = node.user_agent and {
+					["User-Agent"] = node.user_agent
+				} or nil,
 				idle_timeout = (node.http_h2_health_check == "1") and node.http_h2_read_idle_timeout or nil,
 				ping_timeout = (node.http_h2_health_check == "1") and node.http_h2_health_check_timeout or nil,
 			}
-			--不强制执行 TLS。如果未配置 TLS，将使用纯 HTTP 1.1。
+			-- TLS is not enforced. If TLS is not configured, plain HTTP 1.1 will be used.
 		end
 
 		if node.transport == "http" then
@@ -158,19 +163,25 @@ function gen_outbound(flag, node, tag, proxy_table)
 				type = "http",
 				host = node.http_host or {},
 				path = node.http_path or "/",
+				headers = node.user_agent and {
+					["User-Agent"] = node.user_agent
+				} or nil,
 				idle_timeout = (node.http_h2_health_check == "1") and node.http_h2_read_idle_timeout or nil,
 				ping_timeout = (node.http_h2_health_check == "1") and node.http_h2_health_check_timeout or nil,
 			}
-			--不强制执行 TLS。如果未配置 TLS，将使用纯 HTTP 1.1。
+			-- TLS is not enforced. If TLS is not configured, plain HTTP 1.1 will be used.
 		end
 
 		if node.transport == "ws" then
 			v2ray_transport = {
 				type = "ws",
 				path = node.ws_path or "/",
-				headers = (node.ws_host ~= nil) and { Host = node.ws_host } or nil,
+				headers = (node.ws_host or node.user_agent) and {
+					Host = node.ws_host,
+					["User-Agent"] = node.user_agent
+				} or nil,
 				max_early_data = tonumber(node.ws_maxEarlyData) or nil,
-				early_data_header_name = (node.ws_earlyDataHeaderName) and node.ws_earlyDataHeaderName or nil --要与 Xray-core 兼容，请将其设置为 Sec-WebSocket-Protocol。它需要与服务器保持一致。
+				early_data_header_name = (node.ws_earlyDataHeaderName) and node.ws_earlyDataHeaderName or nil -- For compatibility with Xray-core, set it to Sec-WebSocket-Protocol. It needs to be consistent with the server.
 			}
 		end
 
@@ -179,6 +190,9 @@ function gen_outbound(flag, node, tag, proxy_table)
 				type = "httpupgrade",
 				host = node.httpupgrade_host,
 				path = node.httpupgrade_path or "/",
+				headers = node.user_agent and {
+					["User-Agent"] = node.user_agent
+				} or nil
 			}
 		end
 
@@ -186,7 +200,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 			v2ray_transport = {
 				type = "quic"
 			}
-			--没有额外的加密支持： 它基本上是重复加密。 并且 Xray-core 在这里与 v2ray-core 不兼容。
+			-- There is no additional encryption support: it's essentially re-encryption. And Xray-core is incompatible with v2ray-core here.
 		end
 
 		if node.transport == "grpc" then
@@ -265,7 +279,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 				global_padding = (node.global_padding == "1") and true or false,
 				authenticated_length = (node.authenticated_length == "1") and true or false,
 				tls = tls,
-				packet_encoding = "", --UDP 包编码。(空)：禁用	packetaddr：由 v2ray 5+ 支持	xudp：由 xray 支持
+				packet_encoding = "", -- UDP packet encoding. (Empty): Disabled. packetaddr: Supported by v2ray 5+. xudp: Supported by xray.
 				multiplex = mux,
 				transport = v2ray_transport,
 			}
@@ -276,7 +290,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 				uuid = node.uuid,
 				flow = (node.tls == '1' and node.flow) and node.flow or nil,
 				tls = tls,
-				packet_encoding = "xudp", --UDP 包编码。(空)：禁用	packetaddr：由 v2ray 5+ 支持	xudp：由 xray 支持
+				packet_encoding = "xudp", -- UDP packet encoding. (Empty): Disabled. packetaddr: Supported by v2ray 5+. xudp: Supported by xray.
 				multiplex = mux,
 				transport = v2ray_transport,
 			}
@@ -526,7 +540,7 @@ function gen_config_server(node)
 			type = "ws",
 			path = node.ws_path or "/",
 			headers = (node.ws_host ~= nil) and { Host = node.ws_host } or nil,
-			early_data_header_name = (node.ws_earlyDataHeaderName) and node.ws_earlyDataHeaderName or nil --要与 Xray-core 兼容，请将其设置为 Sec-WebSocket-Protocol。它需要与服务器保持一致。
+			early_data_header_name = (node.ws_earlyDataHeaderName) and node.ws_earlyDataHeaderName or nil -- For compatibility with Xray-core, set it to Sec-WebSocket-Protocol. It needs to be consistent with the server.
 		}
 	end
 
@@ -542,7 +556,7 @@ function gen_config_server(node)
 		v2ray_transport = {
 			type = "quic"
 		}
-		--没有额外的加密支持： 它基本上是重复加密。 并且 Xray-core 在这里与 v2ray-core 不兼容。
+		-- There is no additional encryption support: it's essentially re-encryption. And Xray-core is incompatible with v2ray-core here.
 	end
 
 	if node.transport == "grpc" then
@@ -1050,12 +1064,30 @@ function gen_config(var)
 					end
 				end
 				if is_new_ut_node then
-					local ut_node = uci:get_all(appname, ut_node_id)
-					local outbound = gen_outbound(flag, ut_node, ut_node_tag, { fragment = singbox_settings.fragment == "1" or nil, record_fragment = singbox_settings.record_fragment == "1" or nil, run_socks_instance = not no_run })
-					if outbound then
-						outbound.tag = outbound.tag .. ":" .. ut_node.remarks
-						table.insert(outbounds, outbound)
-						valid_nodes[#valid_nodes + 1] = outbound.tag
+					local ut_node
+					if ut_node_id:find("Socks_") then
+						local socks_id = ut_node_id:sub(1 + #"Socks_")
+						local socks_node = uci:get_all(appname, socks_id) or nil
+						if socks_node then
+							ut_node = {
+								type = "sing-box",
+								protocol = "socks",
+								address = "127.0.0.1",
+								port = socks_node.port,
+								uot = "1",
+								remarks = "Socks_" .. socks_node.port
+							}
+						end
+					else
+						ut_node = uci:get_all(appname, ut_node_id)
+					end
+					if ut_node then
+						local outbound = gen_outbound(flag, ut_node, ut_node_tag, { fragment = singbox_settings.fragment == "1" or nil, record_fragment = singbox_settings.record_fragment == "1" or nil, run_socks_instance = not no_run })
+						if outbound then
+							outbound.tag = outbound.tag .. ":" .. ut_node.remarks
+							table.insert(outbounds, outbound)
+							valid_nodes[#valid_nodes + 1] = outbound.tag
+						end
 					end
 				end
 			end
@@ -1369,6 +1401,7 @@ function gen_config(var)
 							domain_regex = {},
 							geosite = {},
 							rule_set = {},
+							invert = e.invert == "1" and true or nil
 						}
 						string.gsub(e.domain_list, '[^' .. "\r\n" .. ']+', function(w)
 							if w:find("#") == 1 then return end
@@ -1425,6 +1458,7 @@ function gen_config(var)
 						rule.geoip = #geoip > 0 and geoip or nil
 					end
 					rule.rule_set = #rule_set > 0 and rule_set or nil
+					rule.invert = e.invert == "1" and true or nil
 
 					table.insert(rules, rule)
 				end
@@ -1471,9 +1505,9 @@ function gen_config(var)
 			servers = {},
 			rules = {},
 			disable_cache = (dns_cache and dns_cache == "0") and true or false,
-			disable_expire = false, --禁用 DNS 缓存过期。
-			independent_cache = false, --使每个 DNS 服务器的缓存独立，以满足特殊目的。如果启用，将轻微降低性能。
-			reverse_mapping = true, --在响应 DNS 查询后存储 IP 地址的反向映射以为路由目的提供域名。
+			disable_expire = false, -- Disable DNS cache expiration.
+			independent_cache = false, -- Make each DNS server's cache independent for specific purposes. If enabled, it will slightly reduce performance.
+			reverse_mapping = true, -- After responding to a DNS query, a reverse mapping of the IP address is stored to provide the domain name for routing purposes.
 			fakeip = nil,
 		}
 
@@ -1587,7 +1621,7 @@ function gen_config(var)
 		end
 		dns.final = default_dns_flag
 
-		--按分流顺序DNS
+		-- DNS in order of shunt
 		if dns_domain_rules and #dns_domain_rules > 0 then
 			for index, value in ipairs(dns_domain_rules) do
 				if value.outboundTag and (value.domain or value.domain_suffix or value.domain_keyword or value.domain_regex or value.geosite or value.rule_set) then
@@ -1600,6 +1634,7 @@ function gen_config(var)
 						geosite = (value.geosite and #value.geosite > 0) and value.geosite or nil,
 						rule_set = (value.rule_set and #value.rule_set > 0) and value.rule_set or nil,
 						disable_cache = false,
+						invert = value.invert,
 					}
 					if value.outboundTag ~= "block" and value.outboundTag ~= "direct" then
 						dns_rule.server = "remote"
@@ -1708,15 +1743,10 @@ function gen_config(var)
 				timestamp = true,
 				output = logfile,
 			},
-			-- DNS
 			dns = dns,
-			-- 传入连接
 			inbounds = inbounds,
-			-- 传出连接
 			outbounds = outbounds,
-			-- 路由
 			route = route,
-			--实验性
 			experimental = experimental,
 		}
 		table.insert(outbounds, {
@@ -1916,9 +1946,7 @@ function gen_proto_config(var)
 			level = "warn",
 			timestamp = true,
 		},
-		-- 传入连接
 		inbounds = inbounds,
-		-- 传出连接
 		outbounds = outbounds,
 	}
 	return jsonc.stringify(config, 1)
