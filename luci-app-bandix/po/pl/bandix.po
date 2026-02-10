@@ -59,6 +59,9 @@ msgstr "Ruch LAN"
 msgid "WAN Traffic"
 msgstr "Ruch WAN"
 
+msgid "Network Type"
+msgstr "Typ Sieci"
+
 msgid "Rate Limit"
 msgstr "Limit prędkości"
 
@@ -126,13 +129,16 @@ msgid "Saving..."
 msgstr "Zapisywanie..."
 
 msgid "Rate limiting only applies to WAN traffic."
-msgstr "Ograniczenie prędkości dotyczy tylko ruchu WAN."
+msgstr "Ograniczenie prędkości dotyczy tylko ruchu WAN. Niektóre wewnętrzne ruchu LAN mogą nie być monitorowane z powodu przyspieszenia przełączania sprzętowego."
 
 msgid "Tip: Enter 0 for unlimited"
 msgstr "Wskazówka: Wprowadź 0 dla bez limitu"
 
 msgid "Traffic History"
 msgstr "Historia ruchu"
+
+msgid "Realtime Traffic Trends"
+msgstr "Trendy Ruchu w Czasie Rzeczywistym"
 
 msgid "Select Device"
 msgstr "Wybierz urządzenie"
@@ -364,6 +370,24 @@ msgstr "Filtr typu"
 
 msgid "All"
 msgstr "Wszystkie"
+
+msgid "Period"
+msgstr "Okres"
+
+msgid "Display Mode"
+msgstr "Tryb Wyświetlania"
+
+msgid "This Year"
+msgstr "Ten Rok"
+
+msgid "Week"
+msgstr "Ten Tydzień"
+
+msgid "Month"
+msgstr "Ten Miesiąc"
+
+msgid "Year"
+msgstr "Ten Rok"
 
 msgid "Queries Only"
 msgstr "Tylko zapytania"
@@ -623,6 +647,12 @@ msgstr "Port"
 msgid "Port for Bandix service to listen on"
 msgstr "Port, na którym usługa Bandix nasłuchuje"
 
+msgid "TC Priority"
+msgstr "Priorytet TC"
+
+msgid "Set TC filter priority to better coexist with other eBPF TC programs. Lower numbers indicate higher priority. 0 means system-assigned."
+msgstr "Ustaw priorytet filtra TC, aby lepiej współistnieć z innymi programami eBPF TC. Mniejsze liczby oznaczają wyższy priorytet. 0 oznacza przypisane przez system."
+
 msgid "Monitor Interface"
 msgstr "Interfejs monitora"
 
@@ -710,8 +740,17 @@ msgstr "1 godzina"
 msgid "2 hours"
 msgstr "2 godziny"
 
+msgid "12 hours"
+msgstr "12 godzin"
+
+msgid "24 hours"
+msgstr "24 godziny"
+
 msgid "Data Directory"
 msgstr "Katalog danych"
+
+msgid "If you change the directory, please manually add it to the backup directory"
+msgstr "Jeśli zmienisz katalog, proszę dodać go ręcznie do katalogu kopii zapasowej"
 
 msgid "Bandix data storage directory"
 msgstr "Katalog przechowywania danych Bandix"
@@ -728,11 +767,26 @@ msgstr "Maksymalna liczba rekordów DNS"
 msgid "Set the maximum number of DNS query records to keep. Older records will be deleted when this limit is exceeded"
 msgstr "Ustaw maksymalną liczbę rekordów zapytań DNS do przechowania. Starsze rekordy zostaną usunięte po przekroczeniu tego limitu"
 
+msgid "Persist DNS Data"
+msgstr "Zachowaj dane DNS"
+
+msgid "Enable DNS data persistence functionality, data will only be persisted to disk when this option is enabled"
+msgstr "Włącz funkcję trwałości danych DNS, dane będą zapisywane na dysk tylko gdy ta opcja jest włączona"
+
+msgid "DNS Data Flush Interval"
+msgstr "Interwał zapisu danych DNS"
+
+msgid "Set the interval for flushing DNS data to disk"
+msgstr "Ustaw interwał zapisywania danych DNS na dysk"
+
 msgid "Persist History Data"
 msgstr "Zachowaj dane historyczne"
 
 msgid "Enable data persistence functionality, data will only be persisted to disk when this option is enabled"
 msgstr "Włącz funkcję trwałości danych, dane będą zapisywane na dysk tylko gdy ta opcja jest włączona"
+
+msgid "Does not occupy storage space, stored only in memory"
+msgstr "Nie zajmuje miejsca na dysku, przechowywane tylko w pamięci"
 
 msgid "Query & Response"
 msgstr "Zapytanie i Odpowiedź"
@@ -1004,6 +1058,9 @@ msgstr "Nie udało się sprawdzić aktualizacji: "
 msgid "Checking..."
 msgstr "Sprawdzanie..."
 
+msgid "Check for Updates"
+msgstr "Sprawdź Aktualizacje"
+
 msgid "Installing..."
 msgstr "Instalowanie..."
 
@@ -1016,8 +1073,8 @@ msgstr "Pobieranie Ręczne"
 msgid "Close"
 msgstr "Zamknij"
 
-msgid "Starting installation... The page will refresh automatically in 5 seconds."
-msgstr "Rozpoczynanie instalacji... Strona odświeży się automatycznie za 5 sekund."
+msgid "Starting installation... The page will refresh automatically in 30 seconds."
+msgstr "Rozpoczynanie instalacji... Strona odświeży się automatycznie za 30 sekund."
 
 msgid "Please clear your browser cache manually after updating."
 msgstr "Po aktualizacji należy ręcznie wyczyścić pamięć podręczną przeglądarki."
@@ -1025,14 +1082,11 @@ msgstr "Po aktualizacji należy ręcznie wyczyścić pamięć podręczną przegl
 msgid "Traffic Statistics"
 msgstr "Statystyki ruchu"
 
-msgid "Traffic Statistics (WAN Only)"
-msgstr "Statystyki ruchu (tylko WAN)"
+msgid "Traffic Statistics"
+msgstr "Statystyki ruchu"
 
 msgid "Device Usage Ranking"
 msgstr "Ranking Użycia Urządzeń"
-
-msgid "(Data has 1 hour delay)"
-msgstr "(Dane mają 1 godzinę opóźnienia)"
 
 msgid "Start Date"
 msgstr "Data Początkowa"
@@ -1076,3 +1130,26 @@ msgstr "Co Godzinę"
 msgid "Device:"
 msgstr "Urządzenie:"
 
+msgid "Traffic Push URL"
+msgstr "Adres URL wysyłania ruchu"
+
+msgid "Push traffic data to a remote HTTP endpoint (POST JSON). Leave empty to disable."
+msgstr "Wysyłaj dane ruchu do zdalnego punktu końcowego HTTP (POST JSON). Pozostaw puste, aby wyłączyć."
+
+msgid "Device Event Push URL"
+msgstr "Adres URL wysyłania zdarzeń urządzenia"
+
+msgid "Push device online/offline events to a remote HTTP endpoint (POST JSON on state change). Leave empty to disable."
+msgstr "Wysyłaj zdarzenia online/offline urządzenia do zdalnego punktu końcowego HTTP (POST JSON przy zmianie stanu). Pozostaw puste, aby wyłączyć."
+
+msgid "Additional Subnets"
+msgstr "Dodatkowe podsieci"
+
+msgid "Additional local subnets (comma-separated CIDR notation, e.g. '192.168.2.0/24,10.0.0.0/8'). Leave empty to use only interface subnet."
+msgstr "Dodatkowe lokalne podsieci (notacja CIDR oddzielona przecinkami, np. '192.168.2.0/24,10.0.0.0/8'). Pozostaw puste, aby używać tylko podsieci interfejsu."
+
+msgid "No devices"
+msgstr "Brak urządzeń"
+
+msgid "LAN Traffic is viewed from the entire subnet perspective, so upload and download are always equal, forming a closed loop. Additionally, due to the presence of dedicated hardware switching chips, LAN traffic between 2 devices (e.g., PC - NAS) within the local network may not be monitorable."
+msgstr "Ruch LAN jest postrzegany z perspektywy całej podsieci, więc przesyłanie i pobieranie są zawsze równe, tworząc zamkniętą pętlę. Ponadto, ze względu na obecność dedykowanych chipów przełączających sprzętowych, ruch LAN między 2 urządzeniami (np. PC - NAS) w sieci lokalnej może nie być monitorowany."

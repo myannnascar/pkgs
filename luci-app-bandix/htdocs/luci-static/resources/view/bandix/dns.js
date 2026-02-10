@@ -6,9 +6,53 @@
 'require poll';
 
 
-// 暗色模式检测已改为使用 CSS 媒体查询 @media (prefers-color-scheme: dark)
+function getThemeMode() {
+    var theme = uci.get('luci', 'main', 'mediaurlbase');
 
-// 检测主题类型：返回 'wide'（宽主题，如 Argon）或 'narrow'（窄主题，如 Bootstrap）
+    if (theme === '/luci-static/openwrt2020' ||
+        theme === '/luci-static/material' ||
+        theme === '/luci-static/bootstrap-light') {
+        return 'light';
+    }
+
+    if (theme === '/luci-static/bootstrap-dark') {
+        return 'dark';
+    }
+
+    if (theme === '/luci-static/argon') {
+        var argonMode = uci.get('argon', '@global[0]', 'mode');
+        if (argonMode === 'light') {
+            return 'light';
+        }
+        if (argonMode === 'dark') {
+            return 'dark';
+        }
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark ? 'dark' : 'light';
+    }
+
+    if (theme === '/luci-static/bootstrap' || theme === '/luci-static/aurora') {
+        var htmlElement = document.documentElement;
+        var darkMode = htmlElement.getAttribute('data-darkmode');
+        return darkMode === 'true' ? 'dark' : 'light';
+    }
+
+    if (theme === '/luci-static/kucat') {
+        var kucatMode = uci.get('kucat', '@basic[0]', 'mode');
+        if (kucatMode === 'light') {
+            return 'light';
+        }
+        if (kucatMode === 'dark') {
+            return 'dark';
+        }
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark ? 'dark' : 'light';
+    }
+
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+}
+
 function getThemeType() {
     // 获取 LuCI 主题设置
     var mediaUrlBase = uci.get('luci', 'main', 'mediaurlbase');
@@ -42,28 +86,7 @@ function getThemeType() {
     return 'narrow';
 }
 
-function formatTimestamp(timestamp) {
-    if (!timestamp) return '-';
-    var date = new Date(timestamp);
-    return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        fractionalSecondDigits: 3
-    });
-}
 
-function formatResponseCode(code) {
-    if (code === 'Success' || code === 'NOERROR') return _('Success');
-    if (code === 'Domain not found' || code === 'NXDomain' || code === 'NXDOMAIN') return _('Domain not found');
-    if (code === 'Server error' || code === 'ServFail' || code === 'SERVFAIL') return _('Server error');
-    if (code === 'Format error' || code === 'FormErr' || code === 'FORMERR') return _('Format error');
-    if (code === 'Refused' || code === 'Refused' || code === 'REFUSED') return _('Refused');
-    return code || _('Other');
-}
 
 function formatDeviceName(device) {
     var parts = [];
@@ -179,12 +202,10 @@ return view.extend({
                 color: #92400e;
             }
             
-            @media (prefers-color-scheme: dark) {
-                .bandix-alert.wide-theme {
-                    background-color: rgba(251, 191, 36, 0.15);
-                    border-color: rgba(251, 191, 36, 0.4);
-                    color: #fbbf24;
-                }
+            .theme-dark .bandix-alert.wide-theme {
+                background-color: rgba(251, 191, 36, 0.15);
+                border-color: rgba(251, 191, 36, 0.4);
+                color: #fbbf24;
             }
             
             .bandix-alert-icon {
@@ -419,21 +440,10 @@ return view.extend({
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
                 transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
             }
-            
-            .stats-grid .cbi-section:hover {
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-                transform: translateY(-2px);
-            }
-            
-            @media (prefers-color-scheme: dark) {
-                .stats-grid .cbi-section {
-                    border-color: rgba(255, 255, 255, 0.15);
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-                }
-                
-                .stats-grid .cbi-section:hover {
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-                }
+
+            .theme-dark .stats-grid .cbi-section {
+                border-color: rgba(255, 255, 255, 0.15);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
             }
             
             .stats-card-main-value {
@@ -509,12 +519,6 @@ return view.extend({
                     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                 }
                 
-                @media (prefers-color-scheme: dark) {
-                    .dns-query-card {
-                        border-color: rgba(255, 255, 255, 0.15);
-                    }
-                }
-                
                 .dns-query-card-header {
                     display: flex;
                     align-items: center;
@@ -522,12 +526,6 @@ return view.extend({
                     margin-bottom: 12px;
                     padding-bottom: 12px;
                     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-                }
-                
-                @media (prefers-color-scheme: dark) {
-                    .dns-query-card-header {
-                        border-bottom-color: rgba(255, 255, 255, 0.15);
-                    }
                 }
                 
                 .dns-query-card-time {
@@ -590,12 +588,6 @@ return view.extend({
                     background-color: rgba(0, 0, 0, 0.05);
                 }
                 
-                @media (prefers-color-scheme: dark) {
-                    .dns-query-card-response-badge {
-                        background-color: rgba(255, 255, 255, 0.1);
-                    }
-                }
-                
                 /* 移动端过滤器优化 */
                 .filter-section {
                     flex-direction: column;
@@ -653,6 +645,18 @@ return view.extend({
                 }
             }
             
+            .theme-dark .dns-query-card {
+                border-color: rgba(255, 255, 255, 0.15);
+            }
+            
+            .theme-dark .dns-query-card-header {
+                border-bottom-color: rgba(255, 255, 255, 0.15);
+            }
+            
+            .theme-dark .dns-query-card-response-badge {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+            
             /* PC端显示表格，隐藏卡片 */
             @media (min-width: 769px) {
                 .bandix-table {
@@ -666,7 +670,8 @@ return view.extend({
         `);
         document.head.appendChild(style);
 
-        var container = E('div', { 'class': 'bandix-dns-container' });
+        var themeMode = getThemeMode();
+        var container = E('div', { 'class': 'bandix-dns-container theme-' + themeMode });
 
         var header = E('div', { 'class': 'bandix-header' }, [
             E('h1', { 'class': 'bandix-title' }, _('Bandix DNS Monitor'))
@@ -749,6 +754,7 @@ return view.extend({
                         E('option', { 'value': 'NS' }, 'NS'),
                         E('option', { 'value': 'PTR' }, 'PTR'),
                         E('option', { 'value': 'SOA' }, 'SOA'),
+                        E('option', { 'value': 'SRV' }, 'SRV'),
                         E('option', { 'value': 'HTTPS' }, 'HTTPS'),
                         E('option', { 'value': 'SVCB' }, 'SVCB')
                     ])
@@ -920,7 +926,7 @@ return view.extend({
                     ]),
                     E('tbody', {}, queries.map(function (query) {
                         return E('tr', {}, [
-                            E('td', {}, formatTimestamp(query.timestamp)),
+                            E('td', {}, query.timestamp_formatted || '-'),
                             E('td', {}, query.domain || '-'),
                             E('td', {}, query.query_type || '-'),
                             E('td', {}, [
@@ -983,7 +989,7 @@ return view.extend({
                     var card = E('div', { 'class': 'dns-query-card' }, [
                         // 卡片头部：时间和类型
                         E('div', { 'class': 'dns-query-card-header' }, [
-                            E('div', { 'class': 'dns-query-card-time' }, formatTimestamp(query.timestamp)),
+                            E('div', { 'class': 'dns-query-card-time' }, query.timestamp_formatted || '-'),
                             E('span', {
                                 'class': 'query-badge ' + (query.is_query ? 'query' : 'response')
                             }, query.is_query ? _('Query') : _('Response'))

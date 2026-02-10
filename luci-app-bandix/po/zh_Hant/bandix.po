@@ -59,6 +59,9 @@ msgstr "LAN 流量"
 msgid "WAN Traffic"
 msgstr "WAN 流量"
 
+msgid "Network Type"
+msgstr "網路類型"
+
 msgid "Rate Limit"
 msgstr "限速設定"
 
@@ -126,13 +129,16 @@ msgid "Saving..."
 msgstr "儲存中..."
 
 msgid "Rate limiting only applies to WAN traffic."
-msgstr "限速功能僅對 WAN 流量生效。"
+msgstr "限速功能僅對 WAN 流量生效。某些 LAN 內部流量可能因硬件交換加速未被監控。"
 
 msgid "Tip: Enter 0 for unlimited"
 msgstr "提示：输入 0 表示無限制"
 
 msgid "Traffic History"
 msgstr "歷史流量趨勢"
+
+msgid "Realtime Traffic Trends"
+msgstr "即時流量趨勢圖"
 
 msgid "Select Device"
 msgstr "選擇設備"
@@ -364,6 +370,24 @@ msgstr "類型篩選"
 
 msgid "All"
 msgstr "全部"
+
+msgid "Period"
+msgstr "週期"
+
+msgid "Display Mode"
+msgstr "顯示模式"
+
+msgid "This Year"
+msgstr "本年"
+
+msgid "Week"
+msgstr "本週"
+
+msgid "Month"
+msgstr "本月"
+
+msgid "Year"
+msgstr "本年"
 
 msgid "Queries Only"
 msgstr "仅查詢"
@@ -623,6 +647,12 @@ msgstr "連接埠"
 msgid "Port for Bandix service to listen on"
 msgstr "Bandix 服務監聽的連接埠"
 
+msgid "TC Priority"
+msgstr "TC 優先級"
+
+msgid "Set TC filter priority to better coexist with other eBPF TC programs. Lower numbers indicate higher priority. 0 means system-assigned."
+msgstr "設置 TC filter 優先級，使得與其他 eBPF TC 程序更好的共存，數字越小，優先級越高，0 表示由系統分配。"
+
 msgid "Monitor Interface"
 msgstr "監控網卡"
 
@@ -710,8 +740,17 @@ msgstr "1 小時"
 msgid "2 hours"
 msgstr "2 小時"
 
+msgid "12 hours"
+msgstr "12 小時"
+
+msgid "24 hours"
+msgstr "24 小時"
+
 msgid "Data Directory"
 msgstr "數据目录"
+
+msgid "If you change the directory, please manually add it to the backup directory"
+msgstr "如果更改了目錄，請手動添加到備份目錄"
 
 msgid "Bandix data storage directory"
 msgstr "Bandix 數据儲存目錄"
@@ -728,11 +767,26 @@ msgstr "DNS最大记录數"
 msgid "Set the maximum number of DNS query records to keep. Older records will be deleted when this limit is exceeded"
 msgstr "設定DNS查詢記錄的最大儲存數量，超過此數量将刪除最舊的记录"
 
+msgid "Persist DNS Data"
+msgstr "持久化DNS數據"
+
+msgid "Enable DNS data persistence functionality, data will only be persisted to disk when this option is enabled"
+msgstr "啟用DNS數據持久化功能，只有啟用此選項後才會持久化到磁碟"
+
+msgid "DNS Data Flush Interval"
+msgstr "DNS數據 flush 間隔"
+
+msgid "Set the interval for flushing DNS data to disk"
+msgstr "設定DNS數據寫入磁碟的時間間隔"
+
 msgid "Persist History Data"
 msgstr "持久化歷史數据"
 
 msgid "Enable data persistence functionality, data will only be persisted to disk when this option is enabled"
 msgstr "啟用數据持久化功能，只有啟用此选项后才會持久化到磁碟"
+
+msgid "Does not occupy storage space, stored only in memory"
+msgstr "不佔用存儲空間，僅存儲在內存中"
 
 msgid "Query & Response"
 msgstr "查詢與響應"
@@ -1004,6 +1058,9 @@ msgstr "檢查更新失敗："
 msgid "Checking..."
 msgstr "檢查中..."
 
+msgid "Check for Updates"
+msgstr "檢查更新"
+
 msgid "Installing..."
 msgstr "安裝中..."
 
@@ -1016,8 +1073,8 @@ msgstr "手動下載"
 msgid "Close"
 msgstr "關閉"
 
-msgid "Starting installation... The page will refresh automatically in 5 seconds."
-msgstr "開始安裝... 頁面將在5秒後自動重新整理。"
+msgid "Starting installation... The page will refresh automatically in 30 seconds."
+msgstr "開始安裝... 頁面將在30秒後自動重新整理。"
 
 msgid "Please clear your browser cache manually after updating."
 msgstr "更新後請手動清空瀏覽器快取。"
@@ -1025,14 +1082,11 @@ msgstr "更新後請手動清空瀏覽器快取。"
 msgid "Traffic Statistics"
 msgstr "流量統計"
 
-msgid "Traffic Statistics (WAN Only)"
-msgstr "流量統計（僅WAN）"
+msgid "Traffic Statistics"
+msgstr "流量統計"
 
 msgid "Device Usage Ranking"
 msgstr "設備用量排行"
-
-msgid "(Data has 1 hour delay)"
-msgstr "（資料有1小時延遲）"
 
 msgid "Start Date"
 msgstr "開始日期"
@@ -1075,3 +1129,27 @@ msgstr "按小時"
 
 msgid "Device:"
 msgstr "設備："
+
+msgid "Traffic Push URL"
+msgstr "流量推送URL"
+
+msgid "Push traffic data to a remote HTTP endpoint (POST JSON). Leave empty to disable."
+msgstr "將流量數據推送至遠程HTTP端點（POST JSON）。留空則禁用。"
+
+msgid "Device Event Push URL"
+msgstr "設備事件推送URL"
+
+msgid "Push device online/offline events to a remote HTTP endpoint (POST JSON on state change). Leave empty to disable."
+msgstr "將設備上下線事件推送至遠程HTTP端點（狀態變化時POST JSON）。留空則禁用。"
+
+msgid "Additional Subnets"
+msgstr "額外子網"
+
+msgid "Additional local subnets (comma-separated CIDR notation, e.g. '192.168.2.0/24,10.0.0.0/8'). Leave empty to use only interface subnet."
+msgstr "額外的本地子網（用逗號分隔的CIDR表示法，例如'192.168.2.0/24,10.0.0.0/8'）。留空則只使用接口子網。"
+
+msgid "No devices"
+msgstr "無設備"
+
+msgid "LAN Traffic is viewed from the entire subnet perspective, so upload and download are always equal, forming a closed loop. Additionally, due to the presence of dedicated hardware switching chips, LAN traffic between 2 devices (e.g., PC - NAS) within the local network may not be monitorable."
+msgstr "LAN 流量是從整個子網視角來看，所以上傳和下載總是相等，是一個閉環。另外，由於專用硬體交換晶片的存在，區域網路中 2 終端（比如 PC - NAS）之間的 LAN 流量可能無法監控。"

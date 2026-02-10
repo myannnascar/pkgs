@@ -1,12 +1,18 @@
 local m, s = ...
 
-local api = require "luci.passwall.api"
-
 if not api.is_finded("ssr-local") and not api.is_finded("ssr-redir")then
 	return
 end
 
-local type_name = "SSR"
+type_name = "SSR"
+
+-- [[ ShadowsocksR Libev ]]
+
+s.fields["type"]:value(type_name, "ShadowsocksR Libev")
+
+if s.val["type"] ~= type_name then
+	return
+end
 
 local option_prefix = "ssr_"
 
@@ -32,10 +38,6 @@ local ssr_obfs_list = {
 	"plain", "http_simple", "http_post", "random_head", "tls_simple",
 	"tls1.0_session_auth", "tls1.2_ticket_auth"
 }
-
--- [[ ShadowsocksR Libev ]]
-
-s.fields["type"]:value(type_name, translate("ShadowsocksR Libev"))
 
 o = s:option(ListValue, _n("del_protocol")) --始终隐藏，用于删除 protocol
 o:depends({ [_n("__hide")] = "1" })
@@ -66,8 +68,7 @@ o = s:option(Value, _n("timeout"), translate("Connection Timeout"))
 o.datatype = "uinteger"
 o.default = 300
 
-o = s:option(ListValue, _n("tcp_fast_open"), "TCP " .. translate("Fast Open"), translate("Need node support required"))
-o:value("false")
-o:value("true")
+o = s:option(Flag, _n("tcp_fast_open"), "TCP " .. translate("Fast Open"), translate("Need node support required"))
+o.default = 0
 
 api.luci_types(arg[1], m, s, type_name, option_prefix)
