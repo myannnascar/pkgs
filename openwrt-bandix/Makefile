@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bandix
-PKG_VERSION:=0.12.5
+PKG_VERSION:=0.12.7
 PKG_RELEASE:=1
 
 PKG_LICENSE:=Apache-2.0
@@ -13,7 +13,7 @@ include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/rust/rust-values.mk
 
 # 二进制文件的文件名和URL
-RUST_BANDIX_VERSION:=0.12.5
+RUST_BANDIX_VERSION:=0.12.7
 RUST_BINARY_FILENAME:=bandix-$(RUST_BANDIX_VERSION)-$(RUSTC_TARGET_ARCH).tar.gz
 
 
@@ -23,7 +23,7 @@ PKG_SOURCE_URL:=https://github.com/timsaya/bandix/releases/download/v$(RUST_BAND
 
 # 修正二进制文件校验值
 ifeq ($(ARCH),aarch64)
-	PKG_HASH:=f22eeb0a7e270ca34bb30022293f4eccbec372df80398bdc0367122f4767684e
+	PKG_HASH:=5ba0853c3937cf6dcc720d0148bb03aa2fc49af427b9bcec4c18d0cc8ac62569
 else ifeq ($(ARCH),arm) # update.sh skip this tag, do not delete this comment
 	# Ref https://github.com/openwrt/packages/blob/master/lang/rust/rust-values.mk
 
@@ -39,28 +39,28 @@ else ifeq ($(ARCH),arm) # update.sh skip this tag, do not delete this comment
 	endif
 
 	ifeq ($(ARM_CPU_TYPE),arm-armel)
-		PKG_HASH:=307761c6969c15469e01008b5e6a6a426142353776d7c1ca0e8dbc24e521220b
+		PKG_HASH:=ea6bc24e7e4292e0857bbc1c553f7e5ccf44b59e93e40077179905e1cdc8db70
 	else ifeq ($(ARM_CPU_TYPE),arm-armhf)
-		PKG_HASH:=51c933811d95bf352befc819a9077e2949e1f97af8f4865ee0e7ece598bcbc0f
+		PKG_HASH:=83ea3c17cae516bbad0d42e46b887aa7f447ad5d2453444630a8da8ac6014439
 	else ifeq ($(ARM_CPU_TYPE),armv5te-armel)
-		PKG_HASH:=484172500574ea860ce086d7f482e6a90edd8bbbb37dfd08e8fdb84e4f5c2ceb
+		PKG_HASH:=a6435af3253f20177578865202d047e01ca048806b4c2da38dad3127c3ee9d8f
 	else ifeq ($(ARM_CPU_TYPE),armv7-armel)
-		PKG_HASH:=10fc837d92f0b12cd03a8be957256abcbac8efee71d7e6574b228521583f9820
+		PKG_HASH:=a839d56b5a97ca33c28f60eac15fcbb3b3828e54ba346f97229a441b542aaeaf
 	else ifeq ($(ARM_CPU_TYPE),armv7-armhf)
-		PKG_HASH:=cb73e66a887e7b65051e99678416d61d915f1595b25f6354990f3fa7842bdc19
+		PKG_HASH:=2768ed546e587455261d8182e431fcab06b968ab11692d3999b3860c47988fc9
 	else
 		PKG_HASH:=dummy
 	endif
 else ifeq ($(ARCH),mips)
-	PKG_HASH:=d4c33adc72ad20288d2b42ca3f4d4ec5ba925936fdbf8f95771d72a6958681f5
+	PKG_HASH:=68e8aadd7976821e084931d36e468ea3a73c282898efee52005c68409090845f
 else ifeq ($(ARCH),mipsel)
-	PKG_HASH:=c2b1dc78f7252ceb7ec6ffad499df78100f9c5beddb5b1152acdc810ed180648
+	PKG_HASH:=cd9977ea44e409294e46a96075d4ce9d1447c77d9697171c768b15af0747fde9
 else ifeq ($(ARCH),powerpc64)
-	PKG_HASH:=5413a85e60cdd3f28850e72228ce2a6fa5e66d263a11b2d7b359d37868fbe864
+	PKG_HASH:=71f793a5fd99e263ee31a394c1e149250ddf59b295f2cf1005686c80a5aac2cc
 else ifeq ($(ARCH),riscv64)
-	PKG_HASH:=4e92ebc97760e42eb00f7948bf47897aace2037ba70416a2b89b322fe2843693
+	PKG_HASH:=2665dbfbcd69e5e22a6d21b151c2aa7f73d9e6aa9f4281ff59cf5033202957f5
 else ifeq ($(ARCH),x86_64)
-	PKG_HASH:=6b091e93a6d49ca1cceb6a0b3fff6fa01e09bcabe06553fdbd599c4c3f35084c
+	PKG_HASH:=4b2609098bbd26b0ca02b8a386e0f7a882277e45e2f8989580fcfb923ee6c695
 else
 	PKG_HASH:=dummy
 endif
@@ -69,7 +69,7 @@ define Package/$(PKG_NAME)
 	SECTION:=net
 	CATEGORY:=Network
 	TITLE:=Bandix - Network traffic monitoring tool
-	DEPENDS:=+zoneinfo-all +conntrack
+	DEPENDS:=+zoneinfo-all +conntrack +iw
 endef
 
 define Package/$(PKG_NAME)/description

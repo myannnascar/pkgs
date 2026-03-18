@@ -46,6 +46,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 		if tag == nil then
 			tag = node_id
 		end
+		local remarks = node.remarks
 
 		local proxy_tag = nil
 		local fragment = nil
@@ -58,7 +59,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 			run_socks_instance = proxy_table.run_socks_instance
 		end
 
-		if node.type ~= "Xray" or node.protocol == "_balancing" then
+		if node.type ~= "Xray" then
 			local relay_port = node.port
 			local new_port = api.get_new_port()
 			local config_file = string.format("%s_%s_%s.json", flag, tag, new_port)
@@ -85,6 +86,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 			node.address = "127.0.0.1"
 			node.port = new_port
 			node.stream_security = "none"
+			proxy_tag = "socks <- " .. node_id
 		else
 			if proxy_tag then
 				node.proxySettings = {
@@ -110,7 +112,7 @@ function gen_outbound(flag, node, tag, proxy_table)
 					bytes[#bytes + 1] = tonumber(b)
 				end)
 			else
-				local result = api.bin.b64decode(node.wireguard_reserved)
+				local result = api.base64Decode(node.wireguard_reserved)
 				for i = 1, #result do
 					bytes[i] = result:byte(i)
 				end
@@ -122,6 +124,10 @@ function gen_outbound(flag, node, tag, proxy_table)
 			node.protocol = "hysteria"
 			node.transport = "hysteria"
 			node.stream_security = "tls"
+		end
+
+		if remarks then
+			tag = tag .. ":" .. remarks
 		end
 
 		result = {
@@ -212,11 +218,12 @@ function gen_outbound(flag, node, tag, proxy_table)
 				} or nil,
 				grpcSettings = (node.transport == "grpc") and {
 					serviceName = node.grpc_serviceName,
-					multiMode = (node.grpc_mode == "multi") and true or nil,
-					idle_timeout = tonumber(node.grpc_idle_timeout) or nil,
+					multiMode = (node.grpc_mode == "multi") and true or false,
+					idle_timeout = node.grpc_idle_timeout and (tonumber(node.grpc_idle_timeout) < 10 and 10 or tonumber(node.grpc_idle_timeout)) or nil,
 					health_check_timeout = tonumber(node.grpc_health_check_timeout) or nil,
-					permit_without_stream = (node.grpc_permit_without_stream == "1") and true or nil,
-					initial_windows_size = tonumber(node.grpc_initial_windows_size) or nil
+					permit_without_stream = (node.grpc_permit_without_stream == "1") and true or false,
+					initial_windows_size = node.grpc_initial_windows_size and tonumber(node.grpc_initial_windows_size) or 0,
+					user_agent = node.user_agent
 				} or nil,
 				httpupgradeSettings = (node.transport == "httpupgrade") and {
 					path = node.httpupgrade_path or "/",
@@ -279,35 +286,55 @@ function gen_outbound(flag, node, tag, proxy_table)
 					end)(),
 					disablePathMTUDiscovery = (node.hysteria2_disable_mtu_discovery) and true or false
 				} or nil,
-				finalmask = (node.transport == "mkcp") and {
-					udp = (function()
-						local t = {}
+				finalmask = (function()
+					local finalmask
+					if node.transport == "mkcp" then
 						local map = {none = "none", srtp = "header-srtp", utp = "header-utp", ["wechat-video"] = "header-wechat",
 							dtls = "header-dtls", wireguard = "header-wireguard", dns = "header-dns"}
+						local udp = {}
 						if node.mkcp_guise and node.mkcp_guise ~= "none" then
 							local g = { type = map[node.mkcp_guise] }
 							if node.mkcp_guise == "dns" and node.mkcp_domain and node.mkcp_domain ~= "" then
 								g.settings = { domain = node.mkcp_domain }
 							end
-							t[#t + 1] = g
+							udp[#udp+1] = g
 						end
 						local c = { type = (node.mkcp_seed and node.mkcp_seed ~= "") and "mkcp-aes128gcm" or "mkcp-original" }
 						if node.mkcp_seed and node.mkcp_seed ~= "" then
 							c.settings = { password = node.mkcp_seed }
 						end
-						t[#t + 1] = c
-						return t
-					end)()
-				} or (node.transport == "hysteria" and node.hysteria2_obfs_type and node.hysteria2_obfs_type ~= "") and {
-					udp = {
-						{
-							type = node.hysteria2_obfs_type,
-							settings = node.hysteria2_obfs_password and {
-								password = node.hysteria2_obfs_password
-							} or nil
+						udp[#udp+1] = c
+						finalmask = { udp = udp }
+					elseif node.transport == "hysteria" and node.hysteria2_obfs_type and node.hysteria2_obfs_type ~= "" then
+						finalmask = {
+							udp = {{
+								type = node.hysteria2_obfs_type,
+								settings = node.hysteria2_obfs_password and {
+									password = node.hysteria2_obfs_password
+								} or nil
+							}}
 						}
-					}
-				} or nil
+					end
+					if node.finalmask and node.finalmask ~= "" then
+						local ok, fm = pcall(jsonc.parse, api.base64Decode(node.finalmask))
+						if ok and type(fm) == "table" then
+							if not finalmask or not next(finalmask) then
+								finalmask = fm
+							else
+								if type(fm.udp) == "table" then
+									finalmask.udp = finalmask.udp or {}
+									for i = 1, #fm.udp do
+										finalmask.udp[#finalmask.udp+1] = fm.udp[i]
+									end
+								end
+								if type(fm.tcp) == "table" then
+									finalmask.tcp = fm.tcp
+								end
+							end
+						end
+					end
+					return (finalmask and next(finalmask)) and finalmask or nil
+				end)()
 			} or nil,
 			settings = {
 				vnext = (node.protocol == "vmess" or node.protocol == "vless") and {
@@ -578,7 +605,7 @@ function gen_config_server(node)
 						host = node.ws_host or nil,
 						path = node.ws_path
 					} or nil,
-					grpcSettings = (node.transport == "grpc") and {
+					grpcSettings = (node.transport == "grpc" and node.grpc_serviceName) and {
 						serviceName = node.grpc_serviceName
 					} or nil,
 					httpupgradeSettings = (node.transport == "httpupgrade") and {
@@ -591,26 +618,46 @@ function gen_config_server(node)
 						maxUploadSize = node.xhttp_maxuploadsize,
 						maxConcurrentUploads = node.xhttp_maxconcurrentuploads
 					} or nil,
-					finalmask = (node.transport == "mkcp") and {
-						udp = (function()
-							local t = {}
+					finalmask = (function()
+						local finalmask
+						if node.transport == "mkcp" then
 							local map = {none = "none", srtp = "header-srtp", utp = "header-utp", ["wechat-video"] = "header-wechat",
 								dtls = "header-dtls", wireguard = "header-wireguard", dns = "header-dns"}
+							local udp = {}
 							if node.mkcp_guise and node.mkcp_guise ~= "none" then
 								local g = { type = map[node.mkcp_guise] }
 								if node.mkcp_guise == "dns" and node.mkcp_domain and node.mkcp_domain ~= "" then
 									g.settings = { domain = node.mkcp_domain }
 								end
-								t[#t + 1] = g
+								udp[#udp+1] = g
 							end
 							local c = { type = (node.mkcp_seed and node.mkcp_seed ~= "") and "mkcp-aes128gcm" or "mkcp-original" }
 							if node.mkcp_seed and node.mkcp_seed ~= "" then
 								c.settings = { password = node.mkcp_seed }
 							end
-							t[#t + 1] = c
-							return t
-						end)()
-					} or nil,
+							udp[#udp+1] = c
+							finalmask = { udp = udp }
+						end
+						if node.finalmask and node.finalmask ~= "" then
+							local ok, fm = pcall(jsonc.parse, api.base64Decode(node.finalmask))
+							if ok and type(fm) == "table" then
+								if not finalmask or not next(finalmask) then
+									finalmask = fm
+								else
+									if type(fm.udp) == "table" then
+										finalmask.udp = finalmask.udp or {}
+										for i = 1, #fm.udp do
+											finalmask.udp[#finalmask.udp+1] = fm.udp[i]
+										end
+									end
+									if type(fm.tcp) == "table" then
+										finalmask.tcp = fm.tcp
+									end
+								end
+							end
+						end
+						return (finalmask and next(finalmask)) and finalmask or nil
+					end)(),
 					sockopt = {
 						tcpFastOpen = (node.tcp_fast_open == "1") and true or nil,
 						acceptProxyProtocol = (node.acceptProxyProtocol and node.acceptProxyProtocol == "1") and true or false
@@ -806,7 +853,7 @@ function gen_config(var)
 			g = api.UrlDecode(g)
 			for k, v in pairs(nodes_list) do
 				local gn = (v.group and v.group ~= "") and v.group or "default"
-				if gn == g and api.match_node_rule(v.remarks, _node.node_match_rule) then
+				if gn:lower() == g:lower() and api.match_node_rule(v.remarks, _node.node_match_rule) then
 					nodes[#nodes + 1] = v.id
 				end
 			end
@@ -817,12 +864,17 @@ function gen_config(var)
 	function gen_loopback(outbound_tag, loopback_dst)
 		if not outbound_tag or outbound_tag == "" then return nil end
 		local inbound_tag = loopback_dst and "lo-to-" .. loopback_dst or outbound_tag .. "-lo"
-		table.insert(outbounds, {
+		local loopback_outbound = {
 			protocol = "loopback",
 			tag = outbound_tag,
 			settings = { inboundTag = inbound_tag }
-		})
-		return inbound_tag
+		}
+		local insert_index = #outbounds + 1
+		if outbound_tag == "default" then
+			insert_index = 1
+		end
+		table.insert(outbounds, insert_index, loopback_outbound)
+		return loopback_outbound
 	end
 
 	function gen_balancer(_node, loopback_tag)
@@ -833,8 +885,8 @@ function gen_config(var)
 		-- existing balancer
 		for _, v in ipairs(balancers) do
 			if v.tag == balancer_tag then
-				gen_loopback(loopback_tag, loopback_dst)
-				return balancer_tag
+				local loopback_outbound = gen_loopback(loopback_tag, loopback_dst)
+				return balancer_tag, loopback_outbound
 			end
 		end
 		-- new balancer
@@ -935,12 +987,13 @@ function gen_config(var)
 				end
 			end
 		end
-		local inbound_tag = gen_loopback(loopback_tag, loopback_dst)
+		local loopback_outbound = gen_loopback(loopback_tag, loopback_dst)
+		local inbound_tag = loopback_outbound.settings.inboundTag
 		table.insert(rules, { inboundTag = { inbound_tag }, balancerTag = balancer_tag })
-		return balancer_tag
+		return balancer_tag, loopback_outbound
 	end
 	
-	function set_outbound_detour(node, outbound, outbounds_table, shunt_rule_name)
+	function set_outbound_detour(node, outbound, outbounds_table)
 		if not node or not outbound or not outbounds_table then return nil end
 		local default_outTag = outbound.tag
 		local last_insert_outbound
@@ -953,10 +1006,6 @@ function gen_config(var)
 				if preproxy_node then
 					local preproxy_outbound = gen_outbound(node[".name"], preproxy_node)
 					if preproxy_outbound then
-						preproxy_outbound.tag = preproxy_node[".name"]
-						if preproxy_node.remarks then
-							preproxy_outbound.tag = preproxy_outbound.tag .. ":" .. preproxy_node.remarks
-						end
 						outbound.tag = preproxy_outbound.tag .. " -> " .. outbound.tag
 						outbound.proxySettings = {
 							tag = preproxy_outbound.tag,
@@ -972,7 +1021,7 @@ function gen_config(var)
 			local to_node = get_node_by_id(node.to_node)
 			if to_node then
 				-- Landing Node not support use special node.
-				if to_node.protocol:find("_") then
+				if to_node.protocol:find("^_") then
 					to_node = nil
 				end
 			end
@@ -1005,15 +1054,7 @@ function gen_config(var)
 					to_outbound = gen_outbound(node[".name"], to_node)
 				end
 				if to_outbound then
-					if shunt_rule_name then
-						to_outbound.tag = outbound.tag
-						outbound.tag = node[".name"]
-					else
-						if to_node.remarks then
-							to_outbound.tag = to_outbound.tag .. ":" .. to_node.remarks
-						end
-						to_outbound.tag = outbound.tag .. " -> " .. to_outbound.tag
-					end
+					to_outbound.tag = outbound.tag .. " -> " .. to_outbound.tag
 					if to_node.type == "Xray" then
 						to_outbound.proxySettings = {
 							tag = outbound.tag,
@@ -1029,17 +1070,42 @@ function gen_config(var)
 	end
 
 	function gen_outbound_get_tag(flag, node_id, tag, proxy_table)
-		if not node_id or node_id == "nil" then return nil end
+		if not node_id or node_id == "" or node_id == "nil" then return nil end
 		local node
 		if type(node_id) == "string" then
 			node = get_node_by_id(node_id)
 		elseif type(node_id) == "table" then
 			node = node_id
 		end
+		if not tag then tag = node[".name"] end
 		if node then
-			if node.protocol == "_iface" then
+			if proxy_table.chain_proxy == "1" or proxy_table.chain_proxy == "2" then
+				node.chain_proxy = proxy_table.chain_proxy
+				node.preproxy_node = proxy_table.chain_proxy == "1" and proxy_table.preproxy_node
+				node.to_node = proxy_table.chain_proxy == "2" and proxy_table.to_node
+				proxy_table.chain_proxy = nil
+				proxy_table.preproxy_node = nil
+				proxy_table.to_node = nil
+			end
+			local outbound, has_add_outbound
+			for _, _outbound in ipairs(outbounds) do
+				-- Avoid generating duplicate nested processes
+				if _outbound["_flag_proxy_tag"] and _outbound["_flag_proxy_tag"]:find("socks <- " .. node[".name"], 1, true) then
+					outbound = api.clone(_outbound)
+					outbound.tag = tag
+					break
+				end
+			end
+			if node.protocol == "_balancing" then
+				local balancer_tag, loopback_outbound = gen_balancer(node, tag)
+				if loopback_outbound then
+					outbound = loopback_outbound
+					node[".name"] = outbound.tag
+					has_add_outbound = true
+				end
+			elseif node.protocol == "_iface" then
 				if node.iface then
-					local outbound = {
+					outbound = {
 						tag = tag,
 						protocol = "freedom",
 						streamSettings = {
@@ -1049,30 +1115,20 @@ function gen_config(var)
 							}
 						}
 					}
-					table.insert(outbounds, outbound)
 					sys.call(string.format("mkdir -p %s && touch %s/%s", api.TMP_IFACE_PATH, api.TMP_IFACE_PATH, node.iface))
-					return outbound.tag
 				end
-				return nil
 			end
-			if proxy_table.chain_proxy == "1" or proxy_table.chain_proxy == "2" then
-				node.chain_proxy = proxy_table.chain_proxy
-				node.preproxy_node = proxy_table.chain_proxy == "1" and proxy_table.preproxy_node
-				node.to_node = proxy_table.chain_proxy == "2" and proxy_table.to_node
-				proxy_table.chain_proxy = nil
-				proxy_table.preproxy_node = nil
-				proxy_table.to_node = nil
+			if not outbound then
+				outbound = gen_outbound(flag, node, tag, proxy_table)
 			end
-			local outbound = gen_outbound(flag, node, tag, proxy_table)
 			if outbound then
-				if node.remarks then
-					outbound.tag = outbound.tag .. ":" .. node.remarks
-				end
 				local default_outbound_tag, last_insert_outbound = set_outbound_detour(node, outbound, outbounds)
-				if tag == "default" then
-					table.insert(outbounds, 1, outbound)
-				else
-					table.insert(outbounds, outbound)
+				if not has_add_outbound then
+					local insert_index = #outbounds + 1
+					if tag == "default" then
+						insert_index = 1
+					end
+					table.insert(outbounds, insert_index, outbound)
 				end
 				if last_insert_outbound then
 					table.insert(outbounds, last_insert_outbound)
@@ -1091,14 +1147,14 @@ function gen_config(var)
 			inner_fakedns = node.fakedns or "0"
 
 			local function gen_shunt_node(rule_name, _node_id)
-				if not rule_name then return nil, nil end
+				if not rule_name then return nil end
 				if not _node_id then _node_id = node[rule_name] end
 				if _node_id == "_direct" then
-					return "direct", nil
+					return "direct"
 				elseif _node_id == "_blackhole" then
-					return "blackhole", nil
+					return "blackhole"
 				elseif _node_id == "_default" and rule_name ~= "default" then
-					return "default", nil
+					return "default"
 				elseif _node_id then
 					local proxy_table = {
 						fragment = xray_settings.fragment == "1",
@@ -1110,19 +1166,18 @@ function gen_config(var)
 					if preproxy_node_id then
 						proxy_table.chain_proxy = "2"
 						proxy_table.to_node = _node_id
-						return gen_outbound_get_tag(flag, preproxy_node_id, rule_name, proxy_table), nil
+						return gen_outbound_get_tag(flag, preproxy_node_id, rule_name, proxy_table)
 					else
-						return gen_outbound_get_tag(flag, _node_id, rule_name, proxy_table), nil
+						return gen_outbound_get_tag(flag, _node_id, rule_name, proxy_table)
 					end
 				end
-				return nil, nil
+				return nil
 			end
 
 			--default_node
 			local default_node_id = node.default_node or "_direct"
-			local default_outboundTag, default_balancerTag = gen_shunt_node("default", default_node_id)
+			local default_outboundTag = gen_shunt_node("default", default_node_id)
 			COMMON.default_outbound_tag = default_outboundTag
-			COMMON.default_balancer_tag = default_balancerTag
 
 			if inner_fakedns == "1" and node["default_fakedns"] == "1" then
 				remote_dns_fake = true
@@ -1130,11 +1185,10 @@ function gen_config(var)
 
 			--shunt rule
 			uci:foreach(appname, "shunt_rules", function(e)
-				local outboundTag, balancerTag = gen_shunt_node(e[".name"])
-				if outboundTag or balancerTag and e.remarks then
+				local outboundTag = gen_shunt_node(e[".name"])
+				if outboundTag and e.remarks then
 					if outboundTag == "default" then
 						outboundTag = default_outboundTag
-						balancerTag = default_balancerTag
 					end
 					local protocols = nil
 					if e["protocol"] and e["protocol"] ~= "" then
@@ -1163,7 +1217,6 @@ function gen_config(var)
 						local domain_table = {
 							shunt_rule_name = e[".name"],
 							outboundTag = outboundTag,
-							balancerTag = balancerTag,
 							domain = {},
 							fakedns = nil,
 						}
@@ -1177,7 +1230,7 @@ function gen_config(var)
 						if inner_fakedns == "1" and node[e[".name"] .. "_fakedns"] == "1" and #domains > 0 then
 							domain_table.fakedns = true
 						end
-						if outboundTag or balancerTag then
+						if outboundTag then
 							table.insert(dns_domain_rules, api.clone(domain_table))
 						end
 						if #domains == 0 then
@@ -1205,7 +1258,6 @@ function gen_config(var)
 						ruleTag = e.remarks,
 						inboundTag = inboundTag,
 						outboundTag = outboundTag,
-						balancerTag = balancerTag,
 						network = e["network"] or "tcp,udp",
 						source = source,
 						--sourcePort = e["sourcePort"] ~= "" and e["sourcePort"] or nil,
@@ -1230,11 +1282,10 @@ function gen_config(var)
 				end
 			end)
 
-			if default_outboundTag or default_balancerTag then
+			if default_outboundTag then
 				local rule = {
 					ruleTag = "default",
 					outboundTag = default_outboundTag,
-					balancerTag = default_balancerTag
 				}
 				if node.domainStrategy == "IPIfNonMatch" then
 					rule.ip = { "0.0.0.0/0", "::/0" }
@@ -1250,24 +1301,6 @@ function gen_config(var)
 				balancers = #balancers > 0 and balancers or nil,
 				rules = rules
 			}
-		elseif node.protocol == "_balancing" then
-			local blc_nodes
-			if node.node_add_mode and node.node_add_mode == "batch" then
-				blc_nodes = get_balancer_batch_nodes(node)
-			else
-				blc_nodes = node.balancing_node
-			end
-			if blc_nodes and #blc_nodes > 0 then
-				local balancer_tag = gen_balancer(node)
-				if balancer_tag then
-					table.insert(rules, { network = "tcp,udp", balancerTag = balancer_tag })
-				end
-				routing = {
-					balancers = balancers,
-					rules = rules
-				}
-				COMMON.default_balancer_tag = balancer_tag
-			end
 		else
 			COMMON.default_outbound_tag = gen_outbound_get_tag(flag, node, nil, {
 				fragment = xray_settings.fragment == "1" or nil,
@@ -1278,12 +1311,13 @@ function gen_config(var)
 				routing = {
 					domainStrategy = "AsIs",
 					domainMatcher = "hybrid",
+					balancers = #balancers > 0 and balancers or nil,
 					rules = rules
 				}
 				table.insert(routing.rules, {
 					ruleTag = "default",
-					outboundTag = COMMON.default_outbound_tag,
-					network = "tcp,udp"
+					network = "tcp,udp",
+					outboundTag = COMMON.default_outbound_tag
 				})
 			end
 		end
@@ -1483,7 +1517,7 @@ function gen_config(var)
 		end
 	
 		local default_dns_tag_name = remote_dns_tag
-		if (not COMMON.default_balancer_tag and not COMMON.default_outbound_tag) or COMMON.default_outbound_tag == "direct" then
+		if not COMMON.default_outbound_tag or COMMON.default_outbound_tag == "direct" then
 			default_dns_tag_name = direct_dns_tag
 		end
 	
@@ -1500,7 +1534,6 @@ function gen_config(var)
 							default_dns_server.server.tag = default_dns_tag
 						else
 							default_dns_server.outboundTag = value.outboundTag or COMMON.default_outbound_tag
-							default_dns_server.balancerTag = COMMON.default_balancer_tag
 						end
 					end
 					table.insert(dns_servers, 1, default_dns_server)
@@ -1511,10 +1544,9 @@ function gen_config(var)
 			-- Shunt rule DNS logic
 			if dns_domain_rules and #dns_domain_rules > 0 then
 				for index, value in ipairs(dns_domain_rules) do
-					if value.domain and (value.outboundTag or value.balancerTag) then
+					if value.domain and value.outboundTag then
 						local dns_server = nil
 						local dns_outboundTag = value.outboundTag
-						local dns_balancerTag = value.balancerTag
 						if value.outboundTag == "direct" then
 							dns_server = api.clone(_direct_dns)
 						else
@@ -1524,19 +1556,24 @@ function gen_config(var)
 								dns_server = api.clone(_remote_dns)
 								if remote_dns_detour == "direct" then
 									dns_outboundTag = "direct"
-									dns_balancerTag = nil
 								end
 							end
 						end
-						dns_server.domains = value.domain
-						if value.shunt_rule_name then
-							dns_server.tag = "dns-in-" .. value.shunt_rule_name
+						local dns_block_mode = "host"
+						if dns_block_mode == "host" and dns_outboundTag == "blackhole" then
+							for d_i, d_k in ipairs(value.domain) do
+								dns.hosts[d_k] = "0.0.0.0"
+							end
+							dns_server = nil
 						end
-
 						if dns_server then
+							dns_server.finalQuery = true
+							dns_server.domains = value.domain
+							if value.shunt_rule_name then
+								dns_server.tag = "dns-in-" .. value.shunt_rule_name
+							end
 							table.insert(dns_servers, {
 								outboundTag = dns_outboundTag,
-								balancerTag = dns_balancerTag,
 								server = dns_server
 							})
 						end
@@ -1548,13 +1585,12 @@ function gen_config(var)
 				local value = dns_servers[i]
 				if value.server.tag ~= direct_dns_tag and value.server.tag ~= remote_dns_tag then
 					-- DNS rule must be at the front, prevents being matched by rules.
-					if (value.outboundTag or value.balancerTag) and value.server.address ~= "fakedns" then
+					if value.outboundTag and value.server.address ~= "fakedns" then
 						table.insert(routing.rules, 1, {
 							inboundTag = {
 								value.server.tag
 							},
 							outboundTag = value.outboundTag,
-							balancerTag = value.balancerTag
 						})
 					end
 					if (value.server.domains and #value.server.domains > 0) or value.server.tag == default_dns_tag then

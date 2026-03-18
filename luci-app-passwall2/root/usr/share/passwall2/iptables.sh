@@ -2,6 +2,7 @@
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 MY_PATH=$DIR/iptables.sh
+UTILS_PATH=$DIR/utils.sh
 IPSET_LOCAL="passwall2_local"
 IPSET_WAN="passwall2_wan"
 IPSET_LAN="passwall2_lan"
@@ -11,8 +12,6 @@ IPSET_LOCAL6="passwall2_local6"
 IPSET_WAN6="passwall2_wan6"
 IPSET_LAN6="passwall2_lan6"
 IPSET_VPS6="passwall2_vps6"
-
-. /lib/functions/network.sh
 
 ipt=$(command -v iptables-legacy || command -v iptables)
 ip6t=$(command -v ip6tables-legacy || command -v ip6tables)
@@ -43,7 +42,7 @@ dst() {
 
 comment() {
 	local name=$(echo $1 | sed 's/ /_/g')
-	echo "-m comment --comment '$name'"
+	echo "-m comment --comment "${name}""
 }
 
 # Resolves invalid IP addresses for ports exceeding 15; it supports single ports and port ranges.
@@ -298,7 +297,6 @@ load_acl() {
 				local _ipt_source _ipv4
 				local msg
 				if [ -n "${interface}" ]; then
-					. /lib/functions/network.sh
 					local gateway device
 					network_get_gateway gateway "${interface}"
 					network_get_device device "${interface}"
@@ -875,8 +873,8 @@ add_firewall_rule() {
 
 			[ -d "${TMP_IFACE_PATH}" ] && {
 				for iface in $(ls ${TMP_IFACE_PATH}); do
-					$ipt_n -I PSW2_OUTPUT -o $iface -p tcp -j RETURN
-					$ipt_m -I PSW2_OUTPUT -o $iface -p tcp -j RETURN
+					$ipt_n -A PSW2_OUTPUT -o $iface -p tcp -j RETURN
+					$ipt_m -A PSW2_OUTPUT -o $iface -p tcp -j RETURN
 				done
 			}
 		fi
@@ -901,8 +899,8 @@ add_firewall_rule() {
 
 			[ -d "${TMP_IFACE_PATH}" ] && {
 				for iface in $(ls ${TMP_IFACE_PATH}); do
-					$ipt_n -I PSW2_OUTPUT -o $iface -p udp -j RETURN
-					$ipt_m -I PSW2_OUTPUT -o $iface -p udp -j RETURN
+					$ipt_n -A PSW2_OUTPUT -o $iface -p udp -j RETURN
+					$ipt_m -A PSW2_OUTPUT -o $iface -p udp -j RETURN
 				done
 			}
 		fi
@@ -972,6 +970,7 @@ gen_include() {
 	local __ipt=""
 	[ -n "${ipt}" ] && {
 		__ipt=$(cat <<- EOF
+			. $UTILS_PATH
 			$ipt-save -c | grep -v "PSW2" | $ipt-restore -c
 			$ipt-restore -n <<-EOT
 			$(extract_rules 4 nat)
@@ -983,7 +982,7 @@ gen_include() {
 
 			\$(${MY_PATH} insert_rule_before "$ipt_m" "PREROUTING" "mwan3" "-j PSW2")
 
-			WAN_IP=\$(${MY_PATH} get_wan_ips ip4)
+			WAN_IP=\$(get_wan_ips ip4)
 			[ ! -z "\${WAN_IP}" ] && {
 				ipset -F $IPSET_WAN
 				for wan_ip in \$WAN_IP; do
@@ -996,6 +995,7 @@ gen_include() {
 	local __ip6t=""
 	[ -n "${ip6t}" ] && {
 		__ip6t=$(cat <<- EOF
+			. $UTILS_PATH
 			$ip6t-save -c | grep -v "PSW2" | $ip6t-restore -c
 			$ip6t-restore -n <<-EOT
 			$(extract_rules 6 nat)
@@ -1006,7 +1006,7 @@ gen_include() {
 
 			\$(${MY_PATH} insert_rule_before "$ip6t_m" "PREROUTING" "mwan3" "-j PSW2")
 
-			WAN6_IP=\$(${MY_PATH} get_wan_ips ip6)
+			WAN6_IP=\$(get_wan_ips ip6)
 			[ ! -z "\${WAN6_IP}" ] && {
 				ipset -F $IPSET_WAN6
 				for wan6_ip in \$WAN6_IP; do
@@ -1047,8 +1047,8 @@ stop() {
 		uci -q delete ${CONFIG}.@global[0].flush_set
 		uci -q commit ${CONFIG}
 		flush_ipset
-		rm -rf /tmp/etc/passwall2_tmp/singbox*
-		rm -f /tmp/etc/passwall2_tmp/geoip-*.json
+		rm -rf $TMP_PATH2/singbox*
+		rm -rf $TMP_PATH2/geo_output
 	}
 	flush_include
 }
@@ -1070,9 +1070,6 @@ get_ipt_bin)
 	;;
 get_ip6t_bin)
 	get_ip6t_bin
-	;;
-get_wan_ips)
-	get_wan_ips
 	;;
 filter_direct_node_list)
 	filter_direct_node_list

@@ -1,7 +1,7 @@
 module("luci.passwall2.api", package.seeall)
 appname = "passwall2"
 local com = require "luci.passwall2.com"
-bin = require "nixio".bin
+nixio = require "nixio"
 fs = require "nixio.fs"
 sys = require "luci.sys"
 uci = require"luci.model.uci".cursor()
@@ -19,8 +19,6 @@ LOG_FILE = "/tmp/log/passwall2.log"
 CACHE_PATH = "/tmp/etc/passwall2_tmp"
 TMP_PATH = "/tmp/etc/" .. appname
 TMP_IFACE_PATH = TMP_PATH .. "/iface"
-
-NEW_PORT = nil
 
 local lang = uci:get("luci", "main", "lang") or "auto"
 if lang == "auto" then
@@ -120,12 +118,7 @@ end
 
 function get_new_port()
 	local cmd_format = ". /usr/share/passwall2/utils.sh ; echo -n $(get_new_port %s tcp,udp)"
-	local set_port = 0
-	if NEW_PORT and tonumber(NEW_PORT) then
-		set_port = tonumber(NEW_PORT) + 1
-	end
-	NEW_PORT = tonumber(sys.exec(string.format(cmd_format, set_port == 0 and "auto" or set_port)))
-	return NEW_PORT
+	return tonumber(sys.exec(string.format(cmd_format, "auto")))
 end
 
 function exec_call(cmd)
@@ -160,8 +153,8 @@ function base64Decode(text)
 end
 
 function base64Encode(text)
-	local result = nixio.bin.b64encode(text)
-	return result
+	if not text then return nil end
+	return nixio.bin.b64encode(text)
 end
 
 function UrlEncode(szText)
@@ -557,6 +550,46 @@ function get_valid_nodes()
 	return nodes
 end
 
+function get_node_list()
+	local node_list = {
+		socks_list = {},
+		normal_list = {},
+	}
+	uci:foreach(appname, "socks", function(s)
+		if s.enabled == "1" and s.node then
+			node_list.socks_list[#node_list.socks_list + 1] = {
+				id = "Socks_" .. s[".name"],
+				remark = i18n.translate("Socks Config") .. " [" .. s.port .. i18n.translate("Port") .. "]",
+				group = "Socks"
+			}
+		end
+	end)
+	for k, e in ipairs(get_valid_nodes()) do
+		if e.node_type == "normal" then
+			node_list.normal_list[#node_list.normal_list + 1] = {
+				id = e[".name"],
+				remark = e["remark"],
+				type = e["type"],
+				chain_proxy = e["chain_proxy"],
+				group = e["group"]
+			}
+		end
+		if e.protocol and e.protocol:find("^_") then
+			local proto = e.protocol:sub(2)
+			if not node_list[proto .. "_list"] then
+				node_list[proto .. "_list"] = {}
+			end
+			node_list[proto .. "_list"][#node_list[proto .. "_list"] + 1] = {
+				id = e[".name"],
+				remark = e["remark"],
+				group = e["group"],
+				o = e,
+			}
+		end
+	end
+	return node_list
+end
+
 function get_node_remarks(n)
 	local remarks = ""
 	if n then
@@ -818,42 +851,59 @@ function exec(cmd, args, writer, timeout)
 	end
 end
 
-function parseURL(url)
-	if not url or url == "" then
-		return nil
-	end
-	local pattern = "^(%w+)://"
-	local protocol = url:match(pattern)
+function parseURL(url_str)
+	local res = {}
 
-	if not protocol then
-		--error("Invalid URL: " .. url)
-		return nil
-	end
-
-	local auth_host_port = url:sub(#protocol + 4)
-	local auth_pattern = "^([^@]+)@"
-	local auth = auth_host_port:match(auth_pattern)
-	local username, password
-
-	if auth then
-		username, password = auth:match("^([^:]+):([^:]+)$")
-		auth_host_port = auth_host_port:sub(#auth + 2)
+	-- 1. Get Scheme (http://)
+	local rest = url_str
+	local scheme, s_rest = url_str:match("^([%w%.%-%+]+)://(.+)$")
+	if scheme then
+		res.protocol = scheme
+		rest = s_rest
 	end
 
-	local host, port = auth_host_port:match("^([^:]+):(%d+)$")
-
-	if not host or not port then
-		--error("Invalid URL: " .. url)
-		return nil
+	-- 2. Get Authority (user:pass@host:port) and Path
+	local authority, path = rest:match("^([^/]+)(.*)$")
+	if path and path ~= "" then
+		res.pathname = path:match("^([^?#]*)")
 	end
 
-	return {
-		protocol = protocol,
-		username = username,
-		password = password,
-		host = host,
-		port = tonumber(port)
-	}
+	-- 3. Process Auth info (user:pass@)
+	-- Use [^@]+ to match the content before the leftmost @.
+	local user_info, host_port = authority:match("^([^@]+)@(.+)$")
+	if user_info then
+		local u, p = user_info:match("^([^:]+):?(.*)$")
+		res.username = u or ""
+		res.password = p or ""
+	else
+		host_port = authority
+	end
+
+	-- 4. Handles Host and Port (IPv6 compatible)
+	-- First look for square brackets [], if not found, then look for regular colons.
+	local ipv6_host, ipv6_port = host_port:match("^%[(.+)%]:(%d+)$")
+	if ipv6_host then
+		res.hostname = ipv6_host
+		res.port = tonumber(ipv6_port)
+	else
+		-- Check if it's an IPv6 address with parentheses but no port number: [2001:db8::1]
+		local pure_ipv6 = host_port:match("^%[(.+)%]$")
+		if pure_ipv6 then
+			res.hostname = pure_ipv6
+		else
+			-- IPv4 or hostname match
+			local h, p = host_port:match("^([^:]+):(%d+)$")
+			if h and p then
+				res.hostname = h
+				res.port = tonumber(p)
+			else
+				res.hostname = host_port
+			end
+		end
+	end
+
+	res.host = host_port
+	return res
 end
 
 function compare_versions(ver1, comp, ver2)
@@ -1485,4 +1535,19 @@ function match_node_rule(name, rule)
 		end
 	end
 	return true
+end
+
+function get_core(field, candidates)
+	local v = uci:get(appname, "@global_subscribe[0]", field)
+	if v and v ~= "" then
+		for _, c in ipairs(candidates) do
+			if c[2] == v and c[1] then
+				return v
+			end
+		end
+	end
+	for _, c in ipairs(candidates) do
+		if c[1] then return c[2] end
+	end
+	return nil
 end

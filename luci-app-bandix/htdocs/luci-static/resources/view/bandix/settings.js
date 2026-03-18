@@ -687,7 +687,25 @@ return view.extend({
 		o.value('86400', _('24 hours'));
 		o.default = '600';
 		o.rmempty = false;
-		o.depends('traffic_persist_history', '1');
+		o.depends('traffic_enable_storage', '1');
+
+		o = s.option(form.Flag, 'traffic_neighbor_flush_enable', _('Enable Neighbor Flush'),
+			_('Enable periodic flush of neighbor table data. Generally not recommended if the device list works normally.'));
+		o.default = '0';
+		o.rmempty = false;
+
+		o = s.option(form.ListValue, 'traffic_neighbor_flush_interval', _('Neighbor Flush Interval'),
+			_('Set the interval for flushing neighbor table data'));
+		o.value('600', _('10 minutes'));
+		o.value('900', _('15 minutes'));
+		o.value('1800', _('30 minutes'));
+		o.value('3600', _('1 hour'));
+		o.value('7200', _('2 hours'));
+		o.value('43200', _('12 hours'));
+		o.value('86400', _('24 hours'));
+		o.default = '600';
+		o.rmempty = false;
+		o.depends('traffic_neighbor_flush_enable', '1');
 
 		// 添加历史流量周期（秒）
 		o = s.option(form.ListValue, 'traffic_realtime_window', _('Realtime Traffic Period'),
@@ -719,6 +737,11 @@ return view.extend({
 		o.datatype = 'string';
 		o.placeholder = '192.168.2.0/24,10.0.0.0/8';
 		o.rmempty = true;
+
+		o = s.option(form.Flag, 'traffic_exclude_iface_device', _('Exclude Interface Device'),
+			_('Exclude the router itself (interface device) from traffic statistics'));
+		o.default = '0';
+		o.rmempty = false;
 
 		// 3. 连接监控设置部分 (connections)
 		s = m.section(form.NamedSection, 'connections', 'connections', _('Connection Monitor Settings'));
