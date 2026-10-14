@@ -1,23 +1,39 @@
 #!/bin/sh
 
-[[ "$ACTION" == "ifup" && $(uci get "passwall.@global[0].enabled") == "1" ]] && [ -f /var/lock/passwall_ready.lock ] && {
-	default_device=$(ip route | grep default | awk -F 'dev ' '{print $2}' | awk '{print $1}')
-	[ "$default_device" == "$DEVICE" ] && {
-		LOCK_FILE_DIR=/var/lock
-		[ ! -d ${LOCK_FILE_DIR} ] && mkdir -p ${LOCK_FILE_DIR}
-		LOCK_FILE="${LOCK_FILE_DIR}/passwall_ifup.lock"
-		if [ -s ${LOCK_FILE} ]; then
-			SPID=$(cat ${LOCK_FILE})
-			if [ -e /proc/${SPID}/status ]; then
-				exit 1
-			fi
-			cat /dev/null > ${LOCK_FILE}
-		fi
-		echo $$ > ${LOCK_FILE}
-		
-		/etc/init.d/passwall restart >/dev/null 2>&1 &
-		logger -p notice -t network -s "passwall: restart when $INTERFACE ifup"
-		
-		rm -rf ${LOCK_FILE}
-	}
+[ "$ACTION" = "ifup" ] || [ "$ACTION" = "ifupdate" ] || exit 0
+[ -n "$DEVICE" ] || exit 0
+
+. /usr/share/passwall/utils.sh
+
+[ -f "${LOCK_PATH}/${CONFIG}_ready.lock" ] || exit 0
+[ "$(get_cache_var "ENABLED_DEFAULT_ACL")" = "1" ] || [ "$(get_cache_var "ENABLED_ACLS")" = "1" ] || exit 0
+
+default_device=$(ip route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); break } exit }')
+default6_device=$(ip -6 route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); break } exit }')
+[ "$default_device" = "$DEVICE" ] || [ "$default6_device" = "$DEVICE" ] || exit 0
+
+if [ "$ACTION" = "ifupdate" ]; then
+	USE_TABLES=$(get_cache_var "USE_TABLES")
+	[ -n "$USE_TABLES" ] && { "${APP_PATH}/${USE_TABLES}.sh" update_wan_sets >/dev/null 2>&1 & }
+	exit 0
+fi
+
+mkdir -p "$LOCK_PATH" || {
+	logger -p err -t network -s "${CONFIG}: cannot create lock directory $LOCK_PATH"
+	exit 1
 }
+
+(
+	command exec 9>"${LOCK_PATH}/${CONFIG}_ifup.lock" || {
+		logger -p err -t network -s "${CONFIG}: cannot open ifup lock"
+		exit 1
+	}
+	flock -xn 9 || exit 0
+
+	# Keep this lock file: removing it would allow locks on different inodes.
+	# The worker holds the lock until restart returns; children must not inherit it.
+	logger -p notice -t network -s "${CONFIG}: restart when $INTERFACE ifup" 9>&-
+	"/etc/init.d/${CONFIG}" restart 9>&-
+) </dev/null >/dev/null 2>&1 &
+
+exit 0

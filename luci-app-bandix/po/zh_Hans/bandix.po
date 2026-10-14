@@ -857,6 +857,9 @@ msgstr "还没有定时限速规则，点击"添加规则"开始设置"
 msgid "Loading..."
 msgstr "加载中..."
 
+msgid "Loading in chunks, please wait... (%d/%d)"
+msgstr "分段加载中，请稍等... (%d/%d)"
+
 msgid "No schedule rules"
 msgstr "没有定时限速规则"
 
@@ -1112,6 +1115,9 @@ msgstr "重置"
 msgid "Today"
 msgstr "今天"
 
+msgid "Yesterday"
+msgstr "昨天"
+
 msgid "This Week"
 msgstr "本周"
 
@@ -1252,3 +1258,123 @@ msgstr "回复源"
 
 msgid "Repl Dst"
 msgstr "回复目标"
+
+msgid "TC backend"
+msgstr "TC 后端"
+
+msgid "Select TC attach backend. Recommendation: use auto by default; tcx is preferred on kernel >= 6.6; netlink is safer on older kernels."
+msgstr "选择 TC 挂载后端。建议默认使用 auto；在内核 >= 6.6 时优先使用 tcx；旧内核使用 netlink 更稳妥。"
+
+msgid "TC order"
+msgstr "TC 顺序"
+
+msgid "Netlink priority"
+msgstr "Netlink 优先级"
+
+msgid "Only used when backend is netlink. Range: 0..65535 (0 means default)."
+msgstr "仅在后端为 netlink 时使用。范围：0..65535（0 表示默认）。"
+
+msgid "TCX ingress anchor program id"
+msgstr "TCX 入站锚点程序 ID"
+
+msgid "Used when tc_order is before/after. Must be a valid ingress program id on the same interface."
+msgstr "当 tc_order 为 before/after 时使用。必须是同一接口上的有效入站程序 ID。"
+
+msgid "TCX egress anchor program id"
+msgstr "TCX 出站锚点程序 ID"
+
+msgid "Used when tc_order is before/after. Must be a valid egress program id on the same interface."
+msgstr "当 tc_order 为 before/after 时使用。必须是同一接口上的有效出站程序 ID。"
+
+msgid "Traffic Quota"
+msgstr "流量配额"
+
+msgid "Quota Status"
+msgstr "配额状态"
+
+msgid "Hourly Quota"
+msgstr "每小时配额"
+
+msgid "Daily Quota"
+msgstr "每天配额"
+
+msgid "Weekly Quota"
+msgstr "每周配额"
+
+msgid "Monthly Quota"
+msgstr "每月配额"
+
+msgid "Lifetime Quota"
+msgstr "累计总量配额"
+
+msgid "WAN upload and download are counted together. Enter 0 for unlimited."
+msgstr "WAN 上传和下载合并计算；输入 0 表示不限量。"
+
+msgid "Not configured"
+msgstr "未配置"
+
+msgid "Blocked"
+msgstr "已阻断"
+
+msgid "Active"
+msgstr "生效中"
+
+msgid "No quota usage data"
+msgstr "暂无配额用量数据"
+
+msgid "Delete Quota"
+msgstr "删除配额"
+
+msgid "Save Quota"
+msgstr "保存配额"
+
+msgid "Usage starts when a quota is first saved."
+msgstr "首次保存配额后开始累计用量。"
+
+msgid "Lifetime"
+msgstr "累计"
+
+msgid "Quota exceeded"
+msgstr "配额已用尽"
+
+msgid "Quota active"
+msgstr "配额生效中"
+
+msgid "WAN traffic is blocked because a quota was reached."
+msgstr "因达到流量配额，WAN 流量已被阻断。"
+
+msgid "Quota blocked"
+msgstr "配额阻断"
+
+msgid "Quota values must be non-negative and within the supported range."
+msgstr "配额必须是支持范围内的非负数。"
+
+msgid "Failed to save traffic quota"
+msgstr "保存流量配额失败"
+
+msgid "Delete Traffic Quota"
+msgstr "删除流量配额"
+
+msgid "Delete this quota and all of its accumulated usage?"
+msgstr "确定删除此配额及其全部累计用量吗？"
+
+msgid "Failed to delete traffic quota"
+msgstr "删除流量配额失败"
+
+msgid "Rules / Quota"
+msgstr "规则 / 配额"
+
+msgid "Failed to load traffic quotas"
+msgstr "加载流量配额失败"
+
+msgid "Unavailable"
+msgstr "不可用"
+
+msgid "Minute Quota"
+msgstr "每分钟配额"
+
+msgid "Minute"
+msgstr "每分钟"
+
+msgid "Show reply direction"
+msgstr "显示回复方向"

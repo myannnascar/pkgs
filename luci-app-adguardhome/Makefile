@@ -7,9 +7,14 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-adguardhome
 PKG_VERSION:=1.8
-PKG_RELEASE:=12
+PKG_RELEASE:=14
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
+
+# 译文 .lmo 由 luci-base 的宿主工具 po2lmo 生成；若不声明该构建依赖，
+# po2lmo 不存在时 install 段的 `which po2lmo ... || true` 会静默跳过，
+# 导致产出的 ipk 缺少中英文翻译（CI 曾长期如此）。
+PKG_BUILD_DEPENDS:=luci-base/host
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -39,13 +44,13 @@ define Package/luci-app-adguardhome/conffiles
 endef
 
 define Package/luci-app-adguardhome/install
-    $(INSTALL_DIR) $(1)/usr/lib/lua/luci
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
 	cp -pR ./luasrc/* $(1)/usr/lib/lua/luci
 	$(INSTALL_DIR) $(1)/
 	cp -pR ./root/* $(1)/
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-	po2lmo ./po/zh-cn/AdGuardHome.po $(1)/usr/lib/lua/luci/i18n/AdGuardHome.zh-cn.lmo
-	po2lmo ./po/en/AdGuardHome.po $(1)/usr/lib/lua/luci/i18n/AdGuardHome.en.lmo
+	-which po2lmo >/dev/null 2>&1 && po2lmo ./po/zh-cn/AdGuardHome.po $(1)/usr/lib/lua/luci/i18n/AdGuardHome.zh-cn.lmo || true
+	-which po2lmo >/dev/null 2>&1 && po2lmo ./po/en/AdGuardHome.po $(1)/usr/lib/lua/luci/i18n/AdGuardHome.en.lmo || true
 endef
 
 define Package/luci-app-adguardhome/postinst

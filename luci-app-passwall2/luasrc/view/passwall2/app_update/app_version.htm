@@ -1,7 +1,8 @@
+<div id="app_version">
 <%
-local api = require "luci.passwall2.api"
-local com = require "luci.passwall2.com"
-local version = {}
+local map = self.map
+local api = map.api
+local com = self.com
 -%>
 
 <script type="text/javascript">
@@ -128,12 +129,54 @@ local version = {}
 
 		var appUpdateUrl = '<%=api.url("update_")%>' + app;
 		var appInfo = appInfoList[app];
+		var downloadId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+		var totalSize = appInfo && appInfo.data ? Number(appInfo.data.size) : 0;
+		if (!isFinite(totalSize) || totalSize <= 0) {
+			totalSize = 0;
+		}
+		var downloadProgressActive = true;
+		var downloadProgressPending = false;
+		var progressTimer = null;
+
+		function stopDownloadProgress() {
+			downloadProgressActive = false;
+			if (progressTimer) {
+				clearInterval(progressTimer);
+				progressTimer = null;
+			}
+		}
+
+		function updateDownloadProgress() {
+			if (!downloadProgressActive || downloadProgressPending || totalSize <= 0) {
+				return;
+			}
+			downloadProgressPending = true;
+			XHR.get(appUpdateUrl, {
+				token: tokenStr,
+				task: 'progress',
+				id: downloadId,
+				total_size: totalSize
+			}, function (x, json) {
+				downloadProgressPending = false;
+				if (downloadProgressActive && json && !json.code && typeof json.percent === 'number') {
+					btn.value = downloadingText + ' ' + json.percent + '%';
+				}
+			}, 300);
+		}
+
+		if (totalSize > 0) {
+			updateDownloadProgress();
+			progressTimer = setInterval(updateDownloadProgress, 1000);
+		}
+
 		// Download file
 		XHR.get(appUpdateUrl, {
 			token: tokenStr,
 			url: appInfo ? appInfo.data.browser_download_url : '',
-			size: appInfo ? appInfo.data.size / 1024 : null
+			size: appInfo ? appInfo.data.size / 1024 : null,
+			id: downloadId
 		}, function (x, json) {
+			stopDownloadProgress();
 			if (json.code) {
 				removePageNotice();
 				onRequestError(btn, json.error);
@@ -192,15 +235,14 @@ local version = {}
 	</div>
 </div>
 
-<%for k, v in pairs(com) do
-	version[k] = api.get_app_version(k)%>
+<%for k, v in pairs(com) do%>
 <div class="cbi-value">
 	<label class="cbi-value-title"><%=v.name%>
 		<%:Version%>
 	</label>
 	<div class="cbi-value-field">
 		<div class="cbi-value-description">
-			<span>【 <%=version[k] ~="" and version[k] or translate("Null") %> 】</span>
+			<span>【 <span class="com_version" key="<%=k%>"><%=translate("Null")%></span> 】</span>
 			<input class="btn cbi-button cbi-button-apply" type="button" id="_<%=k%>-check_btn"
 				onclick="onBtnClick(this,'<%=k%>');" value="<%:Check update%>" />
 			<input class="btn cbi-button cbi-button-apply" type="button" id="_<%=k%>-force_btn"
@@ -210,3 +252,27 @@ local version = {}
 	</div>
 </div>
 <%end%>
+
+<script type="text/javascript">
+	//<![CDATA[
+	document.addEventListener("DOMContentLoaded", function () {
+		let coms = document.getElementsByClassName("com_version");
+		if (coms.length > 0) {
+			for (let i = 0; i < coms.length; i++) {
+				let key = coms[i].getAttribute("key");
+				coms[i].innerHTML = "<%=translate("Collecting data...")%>";
+				XHR.get('<%=api.url("version_")%>' + key, null, function(x, result) {
+					if (x.status == 200 && result.code == 1) {
+						let data = result.data;
+						let t = "<%=translate("Null")%>";
+						if (data && data != "")
+							t = data;
+						coms[i].innerHTML = t;
+					}
+				});
+			}
+		}
+	});
+	//]]>
+</script>
+</div>

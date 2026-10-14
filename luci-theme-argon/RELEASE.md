@@ -1,5 +1,126 @@
 # Update log for master branch
 
+## v2.4.8 [ 2026.10.08 ]
+
+### v2.4.8 r2 rebuild / 修订版重发
+
+Republished on 2026-10-09 with package revision 2: APK packages use `2.4.8-r2`; IPK packages use `2.4.8-2` so both package managers recognize the update.
+
+2026-10-09 重发，主题及配置插件包修订号更新为 2：APK 版本为 `2.4.8-r2`，IPK 版本为 `2.4.8-2`，便于从旧包升级。
+
+- Fix stable OpenWrt 25.12 APK installation (#715): build with SDK 25.12.5 and ship template source.
+- Improve dark sysupgrade dialog contrast and wrapping (`1055e79`).
+- Correct notification banner positioning and spacing (`c70ed6b`).
+- Keep the configuration plugin at `9bafffa`; login-page layout selection and custom favicon/Logo settings are not included.
+
+- 修复稳定版 OpenWrt 25.12 的 APK 安装问题（#715）：使用 25.12.5 SDK，模板保留源码。
+- 修复深色升级弹窗的对比度与换行（`1055e79`）。
+- 修复通知横幅位置和内部间距（`c70ed6b`）。
+- 配置插件固定为 `9bafffa`，不包含登录页样式切换及自定义网站图标／Logo 设置。
+
+### Installation / 安装说明
+
+| Firmware / 固件 | Package / 安装包 |
+| --- | --- |
+| Native `opkg`, including OpenWrt 23.05 / 24.10 and GL.iNet firmware based on them / 原生使用 `opkg` 的固件 | `.ipk` → `opkg install` |
+| Native APK v3 with `apk-tools 3.x` / 原生使用 APK v3 的固件 | `.apk` → `apk add --allow-untrusted` |
+
+APK assets use **APK v3** and cannot be read by `apk-tools 2.x`, including `2.14.0`. Having an `apk` command installed on an opkg-based firmware does not make it APK v3 compatible. `--allow-untrusted` does not change format compatibility, and `apk` cannot install IPK files.
+
+APK 附件采用 **APK v3 格式**，`apk-tools 2.x`（包括 `2.14.0`）无法读取。在原生使用 opkg 的固件上额外安装 `apk`，并不会让固件兼容 APK v3；`--allow-untrusted` 不能解决格式不兼容，`apk` 也不能安装 IPK。
+
+APK builds use the OpenWrt **25.12.5 stable SDK**. Theme templates are shipped as source to avoid snapshot-specific ucode bytecode requirements. If an older APK reports `ucode>=2026.02.27`, use a package rebuilt with the [#715 fix](https://github.com/jerrykuku/luci-theme-argon/issues/715); bypassing dependency checks does not make that bytecode compatible.
+
+APK 使用 OpenWrt **25.12.5 稳定版 SDK** 构建，主题模板保留源码，避免 snapshot 的 ucode 字节码版本限制。若旧 APK 提示需要 `ucode>=2026.02.27`，请使用包含 [#715 修复](https://github.com/jerrykuku/luci-theme-argon/issues/715) 的重新构建包；绕过依赖检查不能解决字节码不兼容。
+
+Download the theme, configuration plugin, and required language packages in the **same format**. Use the exact asset filenames below. For GL.iNet / OpenWrt 23.05, use IPK files with the firmware's existing `opkg`.
+
+主题、配置插件和需要的语言包应选择**相同格式**，以本页附件实际文件名为准。GL.iNet / OpenWrt 23.05 请下载 IPK 并使用固件原有的 `opkg` 安装。
+
+
+### What's Changed
+* fix(cascade): add bottom spacing for argon config form by @TuringTrail in https://github.com/jerrykuku/luci-theme-argon/pull/709
+* feat(sysauth): render Authentication Login plugins on the login page by @FuSan21 in https://github.com/jerrykuku/luci-theme-argon/pull/710
+* fix(sysauth): avoid blue outline on focused login inputs by @TuringTrail in https://github.com/jerrykuku/luci-theme-argon/pull/712
+
+### New Contributors
+* @TuringTrail made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/709
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.7...v2.4.8
+
+## v2.4.7 [ 2026.08.24 ]
+
+### What's Changed
+* fix(openclash): correct form spacing and custom table styles by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/698
+* fixed: Issue where browser tabs were displayed incorrectly. by @smallprogram in https://github.com/jerrykuku/luci-theme-argon/pull/700
+* refactor(openclash): unify Argon theme integration by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/702
+
+### New Contributors
+* @smallprogram made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/700
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.6...v2.4.7
+## v2.4.6 [ 2026.07.31 ]
+
+### What's Changed
+* 修改警告提示对比度弱、系统设置按钮组间距，新增新版隐藏按钮样式 by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/688
+* fix(openclash): normalize config switcher tab height by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/689
+* fix(pr) 修复#688，仅修改了编译产物，没有修改less源代码的问题 by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/692
+* fix(issues) 解决#691提到的暗黑主题白色线问题 by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/693
+
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.5...v2.4.6
+## v2.4.5 [ 2026.07.18 ]
+
+### What's Changed
+* 修复输入框显示不全 by @Rain-Maple in https://github.com/jerrykuku/luci-theme-argon/pull/684
+* fix(apk): avoid replacing uclient-fetch with wget-nossl by @jelipo in https://github.com/jerrykuku/luci-theme-argon/pull/685
+* fix(openclash): align CBI zebra row spacing by @Aethersailor in https://github.com/jerrykuku/luci-theme-argon/pull/686
+
+### New Contributors
+* @Rain-Maple made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/684
+* @jelipo made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/685
+* @Aethersailor made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/686
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.4...v2.4.5
+## v2.4.4 [ 2026.07.16 ]
+
+### What's Changed
+* Dynlist indicate drop target by @jjm2473 in https://github.com/jerrykuku/luci-theme-argon/pull/590
+* feat(online_wallpaper): get rid of curl by @1715173329 in https://github.com/jerrykuku/luci-theme-argon/pull/603
+* chore(template): rewrite into ucode by @msylgj in https://github.com/jerrykuku/luci-theme-argon/pull/602
+* fix some css style error by @msylgj in https://github.com/jerrykuku/luci-theme-argon/pull/607
+* WIP: fix(css): fix some css issues by @msylgj in https://github.com/jerrykuku/luci-theme-argon/pull/617
+* 修复luci-app-poweroffdevice、admin-system-reboot的按钮宽度问题，修复首页/状态页的 Hide、Show 按钮 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/622
+* 修复两处样式异常 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/632
+* Wallhaven.cc loading fix by @AcidSlide in https://github.com/jerrykuku/luci-theme-argon/pull/634
+* MWAN3 specific only - css fix by @AcidSlide in https://github.com/jerrykuku/luci-theme-argon/pull/633
+* 优化openclash的公告栏边距 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/637
+* fix(nlbw): 修复`带宽监控`页面选择器并优化按钮布局 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/649
+* fix: smartdns: fix padding loss in layout style by @sydnkj in https://github.com/jerrykuku/luci-theme-argon/pull/650
+* luci-static/menu-argon: add missing ModeMenu handling by @feckert in https://github.com/jerrykuku/luci-theme-argon/pull/651
+* fix(nftables): 修复`检测到旧版规则` `alert-message` 弹窗点击关闭按钮无效的问题 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/652
+* 修复某些弹窗loading图标位置问题 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/659
+* Comment out X-Frame-Options meta tag by @yws112358 in https://github.com/jerrykuku/luci-theme-argon/pull/663
+* 修复在最新openwrt上的一些问题 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/666
+* 修复OpenWrt 25.12主页样式异常 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/658
+* 修复一些发现的问题 by @yhl452493373 in https://github.com/jerrykuku/luci-theme-argon/pull/668
+* Fix Safari rendering issues on login and LuCI pages by @Nonosword in https://github.com/jerrykuku/luci-theme-argon/pull/670
+* Update LUCI_DEPENDS to use wget-any by @1-1-2 in https://github.com/jerrykuku/luci-theme-argon/pull/671
+* Revert "Update LUCI_DEPENDS to use wget-any" by @jerrykuku in https://github.com/jerrykuku/luci-theme-argon/pull/673
+* 修复主页(dashboard)DHCP设备表格布局异常 by @guowenju in https://github.com/jerrykuku/luci-theme-argon/pull/674
+* fix(css): remove transform on tooltip by @ckorber in https://github.com/jerrykuku/luci-theme-argon/pull/678
+
+### New Contributors
+* @1715173329 made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/603
+* @guowenju made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/632
+* @sydnkj made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/650
+* @feckert made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/651
+* @yws112358 made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/663
+* @Nonosword made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/670
+* @1-1-2 made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/671
+* @ckorber made their first contribution in https://github.com/jerrykuku/luci-theme-argon/pull/678
+
+**Full Changelog**: https://github.com/jerrykuku/luci-theme-argon/compare/v2.4.3...v2.4.4
 ## v2.4.3 [ 2025.07.22 ]
 
 - **Refactor**: Remove jQuery dependency, fully replace with vanilla JavaScript
